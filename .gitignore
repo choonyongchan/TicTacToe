@@ -1,0 +1,44 @@
+# Claude Code files
+.claude/
+CLAUDE.md
+README.md
+
+# Virtual environment
+.env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Pytest cache
+.pytest_cache/
+.cache/
+
+# Algorithm agent implementations (not yet released)
+tictactoe/agents/classic_search/
+tictactoe/agents/heuristic_search/
+tictactoe/agents/monte_carlo/
+tictactoe/agents/reinforcement_learning/
+
+# Algorithm support modules (not yet released)
+tictactoe/benchmark/
+tictactoe/evaluation/
+
+# Algorithm-specific tests (not yet released)
+tictactoe/tests/classic_search/
+tictactoe/tests/heuristic_search/
+tictactoe/tests/monte_carlo/
+tictactoe/tests/reinforcement_learning/
+tictactoe/tests/test_arena.py
+tictactoe/tests/test_correctness.py
+tictactoe/tests/test_heuristics.py
+tictactoe/tests/test_move_ordering.py
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
