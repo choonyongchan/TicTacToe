@@ -82,10 +82,10 @@ class AlphaZeroAgent(BaseAgent):
     def __init__(
         self,
         n: int = 3,
-        num_simulations: int = 50,
-        c_puct: float = 1.0,
-        temperature: float = 1.0,
-        lr: float = 1e-3,
+        num_simulations: int | None = None,
+        c_puct: float | None = None,
+        temperature: float | None = None,
+        lr: float | None = None,
         seed: int | None = None,
     ) -> None:
         if not _HAS_NUMPY:
@@ -93,11 +93,20 @@ class AlphaZeroAgent(BaseAgent):
                 "numpy is required for AlphaZeroAgent. Install it with: pip install numpy"
             )
         from tictactoe.agents.reinforcement_learning.shared.neural_net import PolicyValueNetwork
+        from tictactoe.config import get_config as _cfg, ConfigError as _CE
+        try:
+            _c = _cfg().rl
+            self.num_simulations = num_simulations if num_simulations is not None \
+                else _c.alphazero_simulations
+            self.c_puct = c_puct if c_puct is not None else _c.alphazero_c_puct
+            self.temperature = temperature if temperature is not None else _c.alphazero_temperature
+            self.lr = lr if lr is not None else _c.alphazero_lr
+        except _CE:
+            self.num_simulations = num_simulations if num_simulations is not None else 50
+            self.c_puct = c_puct if c_puct is not None else 1.0
+            self.temperature = temperature if temperature is not None else 1.0
+            self.lr = lr if lr is not None else 1e-3
         self.n = n
-        self.num_simulations = num_simulations
-        self.c_puct = c_puct
-        self.temperature = temperature
-        self.lr = lr
         self._net = PolicyValueNetwork(n)
         self._rng = random.Random(seed)
 

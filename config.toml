@@ -1,0 +1,85 @@
+# config.toml — TicTacToe AI Framework Configuration
+# Edit this file to tune hyperparameters. Changes apply at the start of the next run.
+# All fields are required. Run 'python -m tictactoe.main --mode demo' to verify.
+
+[search]
+# Iterative deepening hard ceiling — the time/node budget usually stops the search
+# well before this limit; raise it for large boards or deep endgame analysis
+id_max_depth = 1000
+# Half-width of the aspiration window around the previous iteration's score
+aspiration_delta = 50.0
+# Transposition table slot count — must be a positive power of 2
+tt_size = 1048576
+# Maximum depth for the Threat Space Search forced-win pre-search
+tss_max_depth = 10
+# Maximum number of MTD(f) binary-search probes per depth iteration
+mtdf_max_iterations = 50
+
+[budget]
+# Per-move wall-clock limit in milliseconds (TIME_CONTROLLED mode)
+time_limit_ms = 1000.0
+# Per-move node-visit cap (NODE_CONTROLLED mode)
+node_budget = 100000
+# Fixed search depth per move (DEPTH_CONTROLLED mode — ablation studies only)
+fixed_depth = 4
+
+[mcts]
+# UCB1 exploration constant — higher values favour exploration over exploitation
+# (sqrt(2) ≈ 1.414 is theoretically optimal for rewards in [0, 1])
+exploration_constant = 1.414
+# Maximum random rollout depth per simulation (vanilla MCTS)
+rollout_depth_limit = 200
+# RAVE crossover point — AMAF weight alpha = 0.5 when visit count equals rave_k
+rave_k = 500.0
+# Exploration constant for the RAVE agent (typically lower than vanilla due to AMAF bonus)
+rave_exploration_constant = 0.5
+# Maximum rollout depth for heuristic-rollout MCTS (shorter due to higher per-step cost)
+heuristic_rollout_depth = 50
+# Number of MCTS simulations per move for AlphaZero-lite
+alphazero_lite_simulations = 100
+# PUCT exploration constant for AlphaZero-lite
+alphazero_lite_c_puct = 1.0
+
+[rl]
+# DQN experience replay buffer capacity
+dqn_buffer_capacity = 10000
+# DQN minibatch size sampled from the replay buffer each training step
+dqn_batch_size = 32
+# DQN discount factor (gamma) for future reward — must be in (0, 1]
+dqn_gamma = 0.95
+# DQN learning rate — must be in (0, 1)
+dqn_lr = 0.001
+# DQN epsilon-greedy exploration rate — must be in [0, 1]
+dqn_epsilon = 0.1
+# DQN steps between copying online network weights to the target network
+dqn_target_update_freq = 100
+# PPO clipping parameter — bounds the policy update ratio, must be in (0, 1)
+ppo_epsilon_clip = 0.2
+# PPO discount factor for future reward — must be in (0, 1]
+ppo_gamma = 0.99
+# PPO GAE lambda — controls bias-variance trade-off in advantage estimation, in (0, 1]
+ppo_lam = 0.95
+# PPO learning rate — must be in (0, 1)
+ppo_lr = 0.001
+# Tabular Q-learning rate (alpha) — must be in (0, 1]
+tabq_alpha = 0.1
+# Tabular Q discount factor (gamma) — must be in (0, 1]
+tabq_gamma = 0.9
+# AlphaZero MCTS simulations per move during self-play
+alphazero_simulations = 50
+# AlphaZero PUCT exploration constant (higher = more influence from network prior)
+alphazero_c_puct = 1.0
+# AlphaZero policy temperature (higher = more uniform move distribution)
+alphazero_temperature = 1.0
+# AlphaZero learning rate for the policy/value network — must be > 0
+alphazero_lr = 0.001
+
+[game]
+# Default board dimension (n×n)
+n = 3
+# Winning line length — set to 0 to default to n
+k = 0
+# Number of games for benchmark / sanity modes
+num_games = 100
+# Random seed for reproducibility
+seed = 42

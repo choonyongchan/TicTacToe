@@ -91,6 +91,11 @@ class MinimaxABEnhanced(BaseAgent):
         self._id = IterativeDeepeningWrapper(
             self._search_fn, use_aspiration, aspiration_delta)
         self._tss_wins_found = 0
+        from tictactoe.config import get_config as _cfg, ConfigError as _CE
+        try:
+            self._tss_max_depth: int = _cfg().search.tss_max_depth
+        except _CE:
+            self._tss_max_depth = 10
 
     def choose_move(self, state: GameState) -> Move:
         """Select the best move using enhanced minimax search.
@@ -112,7 +117,8 @@ class MinimaxABEnhanced(BaseAgent):
 
         # Step 2: TSS pre-search
         if self.use_tss:
-            tss_result = self._tss.find_forced_win(state, state.current_player)
+            tss_result = self._tss.find_forced_win(
+                state, state.current_player, max_depth=self._tss_max_depth)
             if tss_result:
                 self._tss_wins_found += 1
                 state.nodes_visited = 1

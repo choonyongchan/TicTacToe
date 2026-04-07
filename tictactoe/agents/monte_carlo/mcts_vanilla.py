@@ -57,24 +57,32 @@ class MCTSVanilla(BaseAgent):
         _rng: Seeded random number generator for reproducible rollouts.
     """
 
-    def __init__(self, exploration_constant: float = 1.414,
+    def __init__(self, exploration_constant: float | None = None,
                  match_config: MatchConfig | None = None,
-                 rollout_depth_limit: int = 200,
+                 rollout_depth_limit: int | None = None,
                  seed: int | None = None) -> None:
         """Initialise the vanilla MCTS agent.
 
         Args:
-            exploration_constant: UCB1 exploration constant c. Higher values
-                encourage exploration of less-visited nodes.
+            exploration_constant: UCB1 exploration constant c. None reads from
+                config (default 1.414 if config is not loaded).
             match_config: Budget configuration. None defaults to TIME_CONTROLLED
                 with a 1000 ms limit.
-            rollout_depth_limit: Maximum rollout length before returning 0.0
-                (draw estimate).
+            rollout_depth_limit: Maximum rollout length. None reads from config
+                (default 200 if config is not loaded).
             seed: Random seed for the rollout RNG. None uses a random seed.
         """
-        self.c = exploration_constant
+        from tictactoe.config import get_config as _cfg, ConfigError as _CE
+        try:
+            _c = _cfg()
+            self.c = exploration_constant if exploration_constant is not None \
+                else _c.mcts.exploration_constant
+            self.rollout_depth_limit = rollout_depth_limit if rollout_depth_limit is not None \
+                else _c.mcts.rollout_depth_limit
+        except _CE:
+            self.c = exploration_constant if exploration_constant is not None else 1.414
+            self.rollout_depth_limit = rollout_depth_limit if rollout_depth_limit is not None else 200
         self.match_config = match_config
-        self.rollout_depth_limit = rollout_depth_limit
         self._rng = random.Random(seed)
 
     def choose_move(self, state: GameState) -> Move:

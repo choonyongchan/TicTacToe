@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import pathlib
 import sys
 
 
@@ -36,6 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["human", "demo", "sanity", "benchmark", "correctness"],
         default="demo",
         help="Which mode to run.",
+    )
+    parser.add_argument(
+        "--config",
+        default="config.toml",
+        dest="config",
+        help="Path to config.toml. Relative paths are resolved from the project root.",
     )
     parser.add_argument("--n", type=int, default=3, help="Board dimension.")
     parser.add_argument(
@@ -193,12 +200,40 @@ def run_correctness(args: argparse.Namespace) -> None:
     print_correctness_report(report, oracle.get_name())
 
 
+def _resolve_config_path(raw: str) -> pathlib.Path:
+    """Return an absolute path to the config file.
+
+    Relative paths are resolved against the project root (the directory that
+    contains the tictactoe/ package directory).
+
+    Args:
+        raw: The raw --config argument value.
+
+    Returns:
+        Absolute Path to the config file.
+    """
+    p = pathlib.Path(raw)
+    if not p.is_absolute():
+        project_root = pathlib.Path(__file__).parent.parent
+        p = project_root / p
+    return p
+
+
 def main() -> None:
     """Parse CLI arguments and dispatch to the appropriate mode handler."""
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 
     parser = build_parser()
     args = parser.parse_args()
+
+    # Load and validate config before any agents are instantiated.
+    from tictactoe.config import load_config, ConfigError
+    config_path = _resolve_config_path(args.config)
+    try:
+        load_config(config_path)
+    except ConfigError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     handlers = {
         "human": run_human,

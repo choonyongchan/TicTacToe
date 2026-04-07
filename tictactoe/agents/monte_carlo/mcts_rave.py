@@ -59,28 +59,37 @@ class MCTSRave(BaseAgent):
         _rng: Seeded RNG for rollout move sampling.
     """
 
-    def __init__(self, exploration_constant: float = 0.5,
-                 rave_k: float = 500.0,
+    def __init__(self, exploration_constant: float | None = None,
+                 rave_k: float | None = None,
                  match_config: MatchConfig | None = None,
-                 rollout_depth_limit: int = 200,
+                 rollout_depth_limit: int | None = None,
                  seed: int | None = None) -> None:
         """Initialise the MCTS-RAVE agent.
 
         Args:
-            exploration_constant: UCT exploration constant c (typically lower
-                than vanilla MCTS because AMAF already encourages exploration).
-            rave_k: RAVE crossover parameter. Higher values keep the AMAF
-                influence active for longer. Default 500.0 is suitable for
-                typical board sizes.
+            exploration_constant: UCT exploration constant c. None reads from
+                config (default 0.5 if config is not loaded).
+            rave_k: RAVE crossover parameter. None reads from config
+                (default 500.0 if config is not loaded).
             match_config: Budget configuration. None defaults to TIME_CONTROLLED
                 with a 1000 ms limit.
-            rollout_depth_limit: Maximum rollout length.
+            rollout_depth_limit: Maximum rollout length. None reads from config
+                (default 200 if config is not loaded).
             seed: Random seed. None uses a random seed.
         """
-        self.c = exploration_constant
-        self.rave_k = rave_k
+        from tictactoe.config import get_config as _cfg, ConfigError as _CE
+        try:
+            _c = _cfg()
+            self.c = exploration_constant if exploration_constant is not None \
+                else _c.mcts.rave_exploration_constant
+            self.rave_k = rave_k if rave_k is not None else _c.mcts.rave_k
+            self.rollout_depth_limit = rollout_depth_limit if rollout_depth_limit is not None \
+                else _c.mcts.rollout_depth_limit
+        except _CE:
+            self.c = exploration_constant if exploration_constant is not None else 0.5
+            self.rave_k = rave_k if rave_k is not None else 500.0
+            self.rollout_depth_limit = rollout_depth_limit if rollout_depth_limit is not None else 200
         self.match_config = match_config
-        self.rollout_depth_limit = rollout_depth_limit
         self._rng = random.Random(seed)
 
     def choose_move(self, state: GameState) -> Move:

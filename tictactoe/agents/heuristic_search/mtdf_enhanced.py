@@ -25,9 +25,6 @@ from tictactoe.agents.heuristic_search.shared.transposition_table import (
 )
 from tictactoe.agents.heuristic_search.shared.threat_space_search import ThreatSpaceSearch
 
-_MTD_MAX_ITERATIONS = 50
-
-
 class MTDfEnhanced(BaseAgent):
     """MTD(f) with full heuristic enhancement stack.
 
@@ -70,6 +67,16 @@ class MTDfEnhanced(BaseAgent):
         self._tss = ThreatSpaceSearch()
         self._last_score: Score = 0.0
         self._tss_wins_found = 0
+        from tictactoe.config import get_config as _cfg, ConfigError as _CE
+        try:
+            _c = _cfg()
+            self._id_max_depth: int = _c.search.id_max_depth
+            self._max_iterations: int = _c.search.mtdf_max_iterations
+            self._tss_max_depth: int = _c.search.tss_max_depth
+        except _CE:
+            self._id_max_depth = 1000
+            self._max_iterations = 50
+            self._tss_max_depth = 10
 
     def choose_move(self, state: GameState) -> Move:
         """Select the best move using MTD(f) with iterative deepening.
@@ -91,7 +98,8 @@ class MTDfEnhanced(BaseAgent):
 
         # Step 2: TSS pre-search
         if self.use_tss:
-            tss_result = self._tss.find_forced_win(state, state.current_player)
+            tss_result = self._tss.find_forced_win(
+                state, state.current_player, max_depth=self._tss_max_depth)
             if tss_result:
                 self._tss_wins_found += 1
                 state.nodes_visited = 1
@@ -114,7 +122,7 @@ class MTDfEnhanced(BaseAgent):
         best_move: Move | None = candidates[0] if candidates else None
         max_depth_completed = 0
 
-        for depth in range(1, 101):
+        for depth in range(1, self._id_max_depth + 1):
             if budget.exhausted(counters[0], depth):
                 break
 
@@ -172,7 +180,7 @@ class MTDfEnhanced(BaseAgent):
         upper: Score = INF
         best_move: Move | None = None
 
-        for _ in range(_MTD_MAX_ITERATIONS):
+        for _ in range(self._max_iterations):
             if budget.exhausted(counters[0], 0):
                 break
 

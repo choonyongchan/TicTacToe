@@ -98,7 +98,7 @@ class IterativeDeepeningWrapper:
         max_depth_completed = 0
         prev_score = 0.0
 
-        for depth in range(1, 101):
+        for depth in range(1, budget.max_depth() + 1):
             if budget.exhausted(counters[0], depth):
                 break
 

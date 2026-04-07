@@ -33,6 +33,8 @@ class TabularQAgent(BaseAgent):
         self,
         n: int = 3,
         epsilon: float = 0.0,
+        alpha: float | None = None,
+        gamma: float | None = None,
         seed: int | None = None,
     ) -> None:
         if n != 3:
@@ -40,6 +42,14 @@ class TabularQAgent(BaseAgent):
                 f"TabularQAgent only supports n=3, got n={n}. "
                 "The state space is too large for tabular Q-learning on larger boards."
             )
+        from tictactoe.config import get_config as _cfg, ConfigError as _CE
+        try:
+            _c = _cfg().rl
+            self.alpha = alpha if alpha is not None else _c.tabq_alpha
+            self.gamma = gamma if gamma is not None else _c.tabq_gamma
+        except _CE:
+            self.alpha = alpha if alpha is not None else 0.1
+            self.gamma = gamma if gamma is not None else 0.9
         self.n = n
         self.epsilon = epsilon
         self._q_table: dict[int, dict[int, float]] = {}

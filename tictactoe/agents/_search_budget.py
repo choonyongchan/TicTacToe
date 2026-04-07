@@ -10,6 +10,7 @@ from __future__ import annotations
 import time
 
 from tictactoe.benchmark.metrics import MatchConfig
+from tictactoe.config import get_config, ConfigError
 from tictactoe.core.types import MatchMode
 
 
@@ -69,12 +70,17 @@ class SearchBudget:
         """Return the effective maximum search depth for iterative deepening.
 
         Returns:
-            fixed_depth for DEPTH_CONTROLLED mode, 100 otherwise (effectively
-            unlimited — the time/node budget will stop the search instead).
+            fixed_depth for DEPTH_CONTROLLED mode; otherwise id_max_depth from
+            config (default 1000). The time/node budget will stop the search
+            before this limit in practice. Falls back to 100 only when config
+            has not been loaded (e.g. during unit tests that bypass main()).
         """
         if self._mode is MatchMode.DEPTH_CONTROLLED:
             return self._fixed_depth
-        return 100
+        try:
+            return get_config().search.id_max_depth
+        except ConfigError:
+            return 100  # test-only fallback
 
     def mode(self) -> MatchMode:
         """Return the active MatchMode.

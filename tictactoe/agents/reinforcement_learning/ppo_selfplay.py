@@ -40,10 +40,10 @@ class PPOSelfPlayAgent(BaseAgent):
     def __init__(
         self,
         n: int = 3,
-        epsilon_clip: float = 0.2,
-        gamma: float = 0.99,
-        lam: float = 0.95,
-        lr: float = 1e-3,
+        epsilon_clip: float | None = None,
+        gamma: float | None = None,
+        lam: float | None = None,
+        lr: float | None = None,
         seed: int | None = None,
     ) -> None:
         if not _HAS_NUMPY:
@@ -52,11 +52,19 @@ class PPOSelfPlayAgent(BaseAgent):
             )
         import numpy as np
         from tictactoe.agents.reinforcement_learning.shared.neural_net import PolicyValueNetwork
+        from tictactoe.config import get_config as _cfg, ConfigError as _CE
+        try:
+            _c = _cfg().rl
+            self.epsilon_clip = epsilon_clip if epsilon_clip is not None else _c.ppo_epsilon_clip
+            self.gamma = gamma if gamma is not None else _c.ppo_gamma
+            self.lam = lam if lam is not None else _c.ppo_lam
+            self.lr = lr if lr is not None else _c.ppo_lr
+        except _CE:
+            self.epsilon_clip = epsilon_clip if epsilon_clip is not None else 0.2
+            self.gamma = gamma if gamma is not None else 0.99
+            self.lam = lam if lam is not None else 0.95
+            self.lr = lr if lr is not None else 1e-3
         self.n = n
-        self.epsilon_clip = epsilon_clip
-        self.gamma = gamma
-        self.lam = lam
-        self.lr = lr
         self._net = PolicyValueNetwork(n)
         self._rng = random.Random(seed)
 

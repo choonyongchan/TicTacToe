@@ -117,24 +117,31 @@ class MCTSAlphaZeroLite(BaseAgent):
         _trained: True if a network was provided at construction time.
     """
 
-    def __init__(self, net=None, c_puct: float = 1.0,
-                 num_simulations: int = 100,
+    def __init__(self, net=None, c_puct: float | None = None,
+                 num_simulations: int | None = None,
                  match_config: MatchConfig | None = None) -> None:
         """Initialise the AlphaZero-lite agent.
 
         Args:
             net: A PolicyValueNetwork instance, or None to use uniform priors.
                 The network is called lazily on the first choose_move call.
-            c_puct: PUCT exploration constant. Higher values increase the
-                influence of the network prior on selection.
-            num_simulations: Maximum simulations per move (additional hard
-                cap on top of the budget from match_config).
+            c_puct: PUCT exploration constant. None reads from config
+                (default 1.0 if config is not loaded).
+            num_simulations: Maximum simulations per move. None reads from
+                config (default 100 if config is not loaded).
             match_config: Budget configuration. None defaults to TIME_CONTROLLED
                 with a 1000 ms limit.
         """
+        from tictactoe.config import get_config as _cfg, ConfigError as _CE
+        try:
+            _c = _cfg()
+            self.c_puct = c_puct if c_puct is not None else _c.mcts.alphazero_lite_c_puct
+            self.num_simulations = num_simulations if num_simulations is not None \
+                else _c.mcts.alphazero_lite_simulations
+        except _CE:
+            self.c_puct = c_puct if c_puct is not None else 1.0
+            self.num_simulations = num_simulations if num_simulations is not None else 100
         self.net = net
-        self.c_puct = c_puct
-        self.num_simulations = num_simulations
         self.match_config = match_config
         self._trained = net is not None
 

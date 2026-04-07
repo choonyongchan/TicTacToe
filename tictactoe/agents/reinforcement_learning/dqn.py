@@ -40,12 +40,12 @@ class DQNAgent(BaseAgent):
     def __init__(
         self,
         n: int = 3,
-        epsilon: float = 0.1,
-        buffer_capacity: int = 10_000,
-        batch_size: int = 32,
-        gamma: float = 0.95,
-        lr: float = 1e-3,
-        target_update_freq: int = 100,
+        epsilon: float | None = None,
+        buffer_capacity: int | None = None,
+        batch_size: int | None = None,
+        gamma: float | None = None,
+        lr: float | None = None,
+        target_update_freq: int | None = None,
         seed: int | None = None,
     ) -> None:
         if not _HAS_NUMPY:
@@ -53,17 +53,29 @@ class DQNAgent(BaseAgent):
                 "numpy is required for DQNAgent. Install it with: pip install numpy"
             )
         from tictactoe.agents.reinforcement_learning.shared.neural_net import QNetwork
+        from tictactoe.config import get_config as _cfg, ConfigError as _CE
+        try:
+            _c = _cfg().rl
+            self.epsilon = epsilon if epsilon is not None else _c.dqn_epsilon
+            _cap = buffer_capacity if buffer_capacity is not None else _c.dqn_buffer_capacity
+            self.batch_size = batch_size if batch_size is not None else _c.dqn_batch_size
+            self.gamma = gamma if gamma is not None else _c.dqn_gamma
+            self.lr = lr if lr is not None else _c.dqn_lr
+            self.target_update_freq = target_update_freq if target_update_freq is not None \
+                else _c.dqn_target_update_freq
+        except _CE:
+            self.epsilon = epsilon if epsilon is not None else 0.1
+            _cap = buffer_capacity if buffer_capacity is not None else 10_000
+            self.batch_size = batch_size if batch_size is not None else 32
+            self.gamma = gamma if gamma is not None else 0.95
+            self.lr = lr if lr is not None else 1e-3
+            self.target_update_freq = target_update_freq if target_update_freq is not None else 100
         self.n = n
-        self.epsilon = epsilon
-        self.batch_size = batch_size
-        self.gamma = gamma
-        self.lr = lr
-        self.target_update_freq = target_update_freq
         self._steps = 0
         self._rng = random.Random(seed)
         self._online = QNetwork(n)
         self._target = self._online.copy()
-        self._buffer = ReplayBuffer(buffer_capacity)
+        self._buffer = ReplayBuffer(_cap)
 
     # ------------------------------------------------------------------
     # BaseAgent interface
