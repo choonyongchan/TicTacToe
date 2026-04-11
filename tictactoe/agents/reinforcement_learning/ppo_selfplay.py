@@ -3,7 +3,7 @@
 Uses a PolicyValueNetwork, computes GAE advantages, and applies the clipped
 surrogate objective for policy updates.
 
-Requires numpy; raises ImportError at instantiation otherwise.
+Requires numpy.
 
 Dependency chain position: types → state → board → game → agents → benchmark.
 """
@@ -11,11 +11,7 @@ from __future__ import annotations
 
 import random
 
-try:
-    import numpy as _np
-    _HAS_NUMPY = True
-except ImportError:
-    _HAS_NUMPY = False
+import numpy as np
 
 from tictactoe.agents.base_agent import BaseAgent
 from tictactoe.core.board import Board
@@ -40,17 +36,13 @@ class PPOSelfPlayAgent(BaseAgent):
     def __init__(
         self,
         n: int = 3,
+        k: int | None = None,
         epsilon_clip: float | None = None,
         gamma: float | None = None,
         lam: float | None = None,
         lr: float | None = None,
         seed: int | None = None,
     ) -> None:
-        if not _HAS_NUMPY:
-            raise ImportError(
-                "numpy is required for PPOSelfPlayAgent. Install it with: pip install numpy"
-            )
-        import numpy as np
         from tictactoe.agents.reinforcement_learning.shared.neural_net import PolicyValueNetwork
         from tictactoe.config import get_config as _cfg, ConfigError as _CE
         try:
@@ -65,7 +57,8 @@ class PPOSelfPlayAgent(BaseAgent):
             self.lam = lam if lam is not None else 0.95
             self.lr = lr if lr is not None else 1e-3
         self.n = n
-        self._net = PolicyValueNetwork(n)
+        self.k = k if k is not None else n
+        self._net = PolicyValueNetwork(n, k=self.k)
         self._rng = random.Random(seed)
 
     # ------------------------------------------------------------------
@@ -73,7 +66,6 @@ class PPOSelfPlayAgent(BaseAgent):
     # ------------------------------------------------------------------
 
     def choose_move(self, state: GameState) -> Move:
-        import numpy as np
         from tictactoe.agents.reinforcement_learning.shared.neural_net import (
             encode_board_flat, softmax
         )
@@ -103,7 +95,7 @@ class PPOSelfPlayAgent(BaseAgent):
         return (action_idx // n, action_idx % n)
 
     def get_name(self) -> str:
-        return f"PPO-SelfPlay(n={self.n}, clip={self.epsilon_clip})"
+        return f"PPO-SelfPlay(n={self.n}, k={self.k}, clip={self.epsilon_clip})"
 
     def get_tier(self) -> int:
         return 4
@@ -160,7 +152,6 @@ class PPOSelfPlayAgent(BaseAgent):
         Returns:
             The combined PPO loss value.
         """
-        import numpy as np
         from tictactoe.agents.reinforcement_learning.shared.neural_net import softmax
         total_loss = 0.0
         for x, a, old_lp, adv, ret in zip(states, actions, old_log_probs, advantages, returns):

@@ -1,15 +1,10 @@
-"""Tests for MCTSAlphaZeroLite agent."""
+"""Tests for AlphaZeroAgent (previously tested via MCTSAlphaZeroLite)."""
 from __future__ import annotations
 
+import numpy as np
 import pytest
 
-try:
-    import numpy as np
-    HAS_NUMPY = True
-except ImportError:
-    HAS_NUMPY = False
-
-from tictactoe.agents.monte_carlo.mcts_alphazero_lite import MCTSAlphaZeroLite
+from tictactoe.agents.reinforcement_learning.alphazero import AlphaZeroAgent
 from tictactoe.benchmark.metrics import MatchConfig
 from tictactoe.core.board import Board
 from tictactoe.core.state import GameState
@@ -53,8 +48,8 @@ def make_state(board_rows, player=Player.X, k=None):
 # Tests
 # ---------------------------------------------------------------------------
 
-def test_returns_legal_move_without_network():
-    agent = MCTSAlphaZeroLite(net=None, num_simulations=10)
+def test_returns_legal_move_without_pretrained_network():
+    agent = AlphaZeroAgent(n=3, num_simulations=10)
     state = make_state(["...", "...", "..."])
     move = agent.choose_move(state)
     r, c = move
@@ -62,11 +57,10 @@ def test_returns_legal_move_without_network():
     assert state.board[r][c] is Cell.EMPTY
 
 
-@pytest.mark.skipif(not HAS_NUMPY, reason="numpy required")
-def test_returns_legal_move_with_random_network():
+def test_returns_legal_move_with_injected_network():
     from tictactoe.agents.reinforcement_learning.shared.neural_net import PolicyValueNetwork
     net = PolicyValueNetwork(3)
-    agent = MCTSAlphaZeroLite(net=net, num_simulations=10)
+    agent = AlphaZeroAgent(n=3, net=net, num_simulations=10)
     state = make_state(["...", "...", "..."])
     move = agent.choose_move(state)
     r, c = move
@@ -75,14 +69,14 @@ def test_returns_legal_move_with_random_network():
 
 
 def test_get_name_and_tier():
-    agent = MCTSAlphaZeroLite(net=None, num_simulations=5)
+    agent = AlphaZeroAgent(n=3, num_simulations=5)
     name = agent.get_name()
-    assert len(name) > 0  # name is non-empty
-    assert agent.get_tier() == 3
+    assert len(name) > 0
+    assert agent.get_tier() == 4
 
 
 def test_nodes_visited_positive():
-    agent = MCTSAlphaZeroLite(net=None, num_simulations=10)
+    agent = AlphaZeroAgent(n=3, num_simulations=10)
     state = make_state(["...", "...", "..."])
     agent.choose_move(state)
     assert state.nodes_visited > 0
@@ -90,7 +84,7 @@ def test_nodes_visited_positive():
 
 def test_picks_immediate_winning_move():
     # check_forced_move handles this before MCTS even runs
-    agent = MCTSAlphaZeroLite(net=None, num_simulations=20)
+    agent = AlphaZeroAgent(n=3, num_simulations=20)
     state = make_state(["XX.", "...", "..."], player=Player.X, k=3)
     move = agent.choose_move(state)
     assert move == (0, 2)

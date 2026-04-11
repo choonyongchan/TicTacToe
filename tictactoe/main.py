@@ -4,7 +4,7 @@ Provides a CLI with five modes:
   human       — Human vs Human interactive game.
   demo        — HumanAgent vs RandomAgent on a 3×3 board.
   sanity      — Run the BruteForceOracle vs RandomAgent sanity check.
-  benchmark   — Placeholder message (no algorithm agents loaded yet).
+  benchmark   — Scalability sweep + round-robin across Tier 1-3 agents.
   correctness — Run verify_agent_on_known_positions on BruteForceOracle.
 
 Usage examples:
@@ -12,6 +12,8 @@ Usage examples:
   python -m tictactoe.main --mode sanity --games 20
   python -m tictactoe.main --mode correctness
   python -m tictactoe.main --mode human --n 5
+  python -m tictactoe.main --mode benchmark --boards 3,5,10,20 --time-limit-ms 500
+  python -m tictactoe.main --mode benchmark --boards 3,5,10,20,50,100 --match-mode node --node-budget 50000
 """
 
 from __future__ import annotations
@@ -23,11 +25,6 @@ import sys
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Construct the CLI argument parser.
-
-    Returns:
-        A fully configured ArgumentParser.
-    """
     parser = argparse.ArgumentParser(
         description="n×n Tic-Tac-Toe research framework",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -47,11 +44,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--n", type=int, default=3, help="Board dimension.")
     parser.add_argument(
         "--k", type=int, default=None,
-        help="Winning line length. Defaults to n.",
+        help="Winning line length. Defaults to min(n, 5).",
     )
     parser.add_argument(
-        "--games", type=int, default=100,
-        help="Number of games for benchmark / sanity modes.",
+        "--games", type=int, default=20,
+        help="Games per pair for benchmark / sanity modes.",
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed.")
     parser.add_argument("--verbose", action="store_true", help="Print board after each move.")
@@ -77,18 +74,25 @@ def build_parser() -> argparse.ArgumentParser:
         dest="fixed_depth",
         help="Fixed search depth (DEPTH_CONTROLLED mode).",
     )
+    parser.add_argument(
+        "--boards",
+        default=None,
+        metavar="SIZES",
+        help=(
+            "Comma-separated board sizes for the benchmark scalability sweep, "
+            "e.g. '3,5,10,20,50,100'. Defaults to the value of --n."
+        ),
+    )
+    parser.add_argument(
+        "--tiers",
+        default="1,2,3",
+        metavar="TIERS",
+        help="Comma-separated tier numbers to include in benchmark (e.g. '1,2,3').",
+    )
     return parser
 
 
 def build_match_config(args: argparse.Namespace):
-    """Build a MatchConfig from parsed CLI arguments.
-
-    Args:
-        args: Parsed argument namespace.
-
-    Returns:
-        A MatchConfig appropriate for the selected match mode.
-    """
     from tictactoe.benchmark.metrics import MatchConfig
 
     if args.match_mode == "node":
@@ -98,17 +102,57 @@ def build_match_config(args: argparse.Namespace):
     return MatchConfig.time_controlled(args.time_limit_ms)
 
 
-def run_human(args: argparse.Namespace) -> None:
-    """Run a Human vs Human interactive game.
+def _build_tier_agents(config) -> dict[int, list]:
+    """Instantiate all benchmarkable (Tier 1–3) agents.
+
+    Tier 4 agents (RL) require pre-trained models and are excluded from
+    automated benchmarks. Load them manually and pass them to Arena.duel.
 
     Args:
-        args: Parsed CLI arguments.
+        config: MatchConfig to pass to each agent.
+
+    Returns:
+        Dict mapping tier number → list of agents for that tier.
     """
+    from tictactoe.agents.classic_search.minimax_ab import MinimaxAB
+    from tictactoe.agents.classic_search.negamax import NegaMax
+    from tictactoe.agents.classic_search.negascout import NegaScout
+    from tictactoe.agents.classic_search.mtdf import MTDf
+    from tictactoe.agents.heuristic_search.minimax_ab_enhanced import MinimaxABEnhanced
+    from tictactoe.agents.heuristic_search.negamax_enhanced import NegaMaxEnhanced
+    from tictactoe.agents.heuristic_search.negascout_enhanced import NegaScoutEnhanced
+    from tictactoe.agents.heuristic_search.mtdf_enhanced import MTDfEnhanced
+    from tictactoe.agents.monte_carlo.mcts_vanilla import MCTSVanilla
+    from tictactoe.agents.monte_carlo.mcts_rave import MCTSRave
+    from tictactoe.agents.monte_carlo.mcts_heuristic_rollout import MCTSHeuristicRollout
+
+    return {
+        1: [
+            MinimaxAB(match_config=config),
+            NegaMax(match_config=config),
+            NegaScout(match_config=config),
+            MTDf(match_config=config),
+        ],
+        2: [
+            MinimaxABEnhanced(match_config=config),
+            NegaMaxEnhanced(match_config=config),
+            NegaScoutEnhanced(match_config=config),
+            MTDfEnhanced(match_config=config),
+        ],
+        3: [
+            MCTSVanilla(match_config=config),
+            MCTSRave(match_config=config),
+            MCTSHeuristicRollout(match_config=config),
+        ],
+    }
+
+
+def run_human(args: argparse.Namespace) -> None:
     from tictactoe.agents.human_agent import HumanAgent
     from tictactoe.core.game import Game
 
     n = args.n
-    k = args.k if args.k is not None else n
+    k = args.k if args.k is not None else min(n, 5) if n > 5 else n
     config = build_match_config(args)
 
     print(f"\nHuman vs Human | {n}×{n} board | win length={k}\n")
@@ -126,11 +170,6 @@ def run_human(args: argparse.Namespace) -> None:
 
 
 def run_demo(args: argparse.Namespace) -> None:
-    """Run a Human vs RandomAgent demo game on a 3×3 board.
-
-    Args:
-        args: Parsed CLI arguments.
-    """
     from tictactoe.agents.human_agent import HumanAgent
     from tictactoe.agents.random_agent import RandomAgent
     from tictactoe.core.game import Game
@@ -151,14 +190,8 @@ def run_demo(args: argparse.Namespace) -> None:
 
 
 def run_sanity(args: argparse.Namespace) -> None:
-    """Run the BruteForceOracle vs RandomAgent sanity check.
-
-    Args:
-        args: Parsed CLI arguments.
-    """
     from tictactoe.benchmark.arena import Arena
     from tictactoe.benchmark.correctness import BruteForceOracle
-    from tictactoe.benchmark.reporter import print_correctness_report
 
     games = args.games if args.games % 2 == 0 else args.games + 1
     print(f"\nSanity check: BruteForceOracle vs RandomAgent ({games} games on 3×3)\n")
@@ -173,24 +206,91 @@ def run_sanity(args: argparse.Namespace) -> None:
     print(f"  Agent    : {result['agent_name']}")
 
 
-def run_benchmark(_args: argparse.Namespace) -> None:
-    """Print a placeholder message for benchmark mode.
+def run_benchmark(args: argparse.Namespace) -> None:
+    """Run scalability sweep + optional round-robin for Tier 1-3 agents.
 
-    Args:
-        _args: Parsed CLI arguments (unused).
+    Board sizes come from --boards (comma-separated). When a single board
+    size is given, also runs a within-tier round-robin tournament.
+
+    The comprehensive performance report shows, per agent per board size:
+    - Average nodes visited (= nodes expanded in this framework)
+    - Average effective branching factor (EBF)
+    - Average time per move (ms)
+    - Win rate vs RandomAgent
+    - Budget exhausted: how many moves hit the search budget limit
     """
-    print(
-        "\nNo algorithm agents loaded yet. "
-        "Add agents to tictactoe/agents/ and register them here to run benchmarks.\n"
+    from tictactoe.benchmark.arena import Arena
+    from tictactoe.benchmark.reporter import print_round_robin_table, print_performance_report
+
+    config = build_match_config(args)
+
+    # Parse board sizes and selected tiers.
+    if args.boards:
+        board_sizes = [int(x.strip()) for x in args.boards.split(",")]
+    else:
+        board_sizes = [args.n]
+
+    selected_tiers = [int(t.strip()) for t in args.tiers.split(",")]
+
+    # Primary board/k for round-robin.
+    primary_n = board_sizes[0]
+    primary_k = args.k if args.k is not None else min(primary_n, 5) if primary_n > 5 else primary_n
+
+    all_tier_agents = _build_tier_agents(config)
+
+    # Build flat list and tier mapping for the report.
+    sweep_agents = []
+    agent_tiers: dict[str, int] = {}
+    for tier in selected_tiers:
+        for agent in all_tier_agents.get(tier, []):
+            sweep_agents.append(agent)
+            agent_tiers[agent.get_name()] = tier
+
+    if not sweep_agents:
+        print("\nNo agents to benchmark. Check --tiers argument.")
+        return
+
+    print(f"\n{'='*60}")
+    print("  Benchmark — Scalability Sweep")
+    print(f"  Board sizes : {board_sizes}")
+    print(f"  Tiers       : {selected_tiers}")
+    print(f"  Games/size  : {args.games}  |  Seed: {args.seed}")
+    print(f"  Mode        : {args.match_mode}")
+    print(f"{'='*60}")
+
+    # Scalability sweep: each agent vs RandomAgent at every board size.
+    arena = Arena(
+        n=primary_n,
+        k=primary_k,
+        num_games=args.games,
+        match_config=config,
     )
+    arena.set_seed(args.seed)
+
+    records = arena.scalability_sweep(
+        agents=sweep_agents,
+        board_sizes=board_sizes,
+        games_per_size=args.games,
+        k_override=args.k,
+    )
+
+    print_performance_report(records, agent_tiers, k_override=args.k)
+
+    # Round-robin within each tier for the primary board size only.
+    if len(board_sizes) == 1:
+        for tier in selected_tiers:
+            tier_agents = all_tier_agents.get(tier, [])
+            if len(tier_agents) < 2:
+                continue
+            print(f"\n{'='*60}")
+            print(f"  Tier {tier} Round-Robin | {primary_n}×{primary_n} (k={primary_k})")
+            print(f"  {args.games} games per pair | Mode: {args.match_mode}")
+            print(f"{'='*60}")
+            rr_result = arena.round_robin(tier_agents)
+            print_round_robin_table(rr_result)
 
 
 def run_correctness(args: argparse.Namespace) -> None:
-    """Run correctness verification on BruteForceOracle against all known positions.
-
-    Args:
-        args: Parsed CLI arguments.
-    """
     from tictactoe.benchmark.correctness import BruteForceOracle, verify_agent_on_known_positions
     from tictactoe.benchmark.reporter import print_correctness_report
 
@@ -201,17 +301,6 @@ def run_correctness(args: argparse.Namespace) -> None:
 
 
 def _resolve_config_path(raw: str) -> pathlib.Path:
-    """Return an absolute path to the config file.
-
-    Relative paths are resolved against the project root (the directory that
-    contains the tictactoe/ package directory).
-
-    Args:
-        raw: The raw --config argument value.
-
-    Returns:
-        Absolute Path to the config file.
-    """
     p = pathlib.Path(raw)
     if not p.is_absolute():
         project_root = pathlib.Path(__file__).parent.parent
@@ -226,7 +315,6 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
 
-    # Load and validate config before any agents are instantiated.
     from tictactoe.config import load_config, ConfigError
     config_path = _resolve_config_path(args.config)
     try:
@@ -243,8 +331,7 @@ def main() -> None:
         "correctness": run_correctness,
     }
 
-    handler = handlers[args.mode]
-    handler(args)
+    handlers[args.mode](args)
 
 
 if __name__ == "__main__":

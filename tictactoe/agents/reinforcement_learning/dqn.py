@@ -3,7 +3,7 @@
 Uses a QNetwork with experience replay and a target network updated
 periodically. Inference masks illegal moves with -inf.
 
-Requires numpy; raises ImportError at instantiation otherwise.
+Requires numpy.
 
 Dependency chain position: types → state → board → game → agents → benchmark.
 """
@@ -11,11 +11,7 @@ from __future__ import annotations
 
 import random
 
-try:
-    import numpy as _np
-    _HAS_NUMPY = True
-except ImportError:
-    _HAS_NUMPY = False
+import numpy as np
 
 from tictactoe.agents.base_agent import BaseAgent
 from tictactoe.agents.reinforcement_learning.shared.replay_buffer import (
@@ -40,6 +36,7 @@ class DQNAgent(BaseAgent):
     def __init__(
         self,
         n: int = 3,
+        k: int | None = None,
         epsilon: float | None = None,
         buffer_capacity: int | None = None,
         batch_size: int | None = None,
@@ -48,10 +45,6 @@ class DQNAgent(BaseAgent):
         target_update_freq: int | None = None,
         seed: int | None = None,
     ) -> None:
-        if not _HAS_NUMPY:
-            raise ImportError(
-                "numpy is required for DQNAgent. Install it with: pip install numpy"
-            )
         from tictactoe.agents.reinforcement_learning.shared.neural_net import QNetwork
         from tictactoe.config import get_config as _cfg, ConfigError as _CE
         try:
@@ -71,9 +64,10 @@ class DQNAgent(BaseAgent):
             self.lr = lr if lr is not None else 1e-3
             self.target_update_freq = target_update_freq if target_update_freq is not None else 100
         self.n = n
+        self.k = k if k is not None else n
         self._steps = 0
         self._rng = random.Random(seed)
-        self._online = QNetwork(n)
+        self._online = QNetwork(n, self.k)
         self._target = self._online.copy()
         self._buffer = ReplayBuffer(_cap)
 
@@ -82,7 +76,6 @@ class DQNAgent(BaseAgent):
     # ------------------------------------------------------------------
 
     def choose_move(self, state: GameState) -> Move:
-        import numpy as np
         from tictactoe.agents.reinforcement_learning.shared.neural_net import encode_board_flat
         state.nodes_visited = 1
         state.max_depth_reached = 0
@@ -109,7 +102,7 @@ class DQNAgent(BaseAgent):
         return (best_idx // state.n, best_idx % state.n)
 
     def get_name(self) -> str:
-        return f"DQN(n={self.n}, eps={self.epsilon})"
+        return f"DQN(n={self.n}, k={self.k}, eps={self.epsilon})"
 
     def get_tier(self) -> int:
         return 4
@@ -142,7 +135,6 @@ class DQNAgent(BaseAgent):
 
     def _update_weights(self, batch: list[Experience]) -> float:
         """Compute DQN targets and update online network via SGD on output layer."""
-        import numpy as np
         from tictactoe.agents.reinforcement_learning.shared.neural_net import relu
 
         states = np.array([e.state_tensor for e in batch], dtype=np.float32)

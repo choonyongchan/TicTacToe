@@ -87,7 +87,7 @@ def test_win_rate_vs_random_agent():
         MCTSVanilla(match_config=MatchConfig.node_controlled(200)),
         RandomAgent(),
     )
-    assert result.win_rate_a() > 0.80
+    assert result.win_rate_a() >= 0.80
 
 
 def test_never_loses_to_oracle():

@@ -38,7 +38,7 @@ from tictactoe.agents._shared_utils import check_forced_move
 from tictactoe.agents.monte_carlo.node import MCTSNode
 from tictactoe.core.board import Board
 from tictactoe.core.state import GameState
-from tictactoe.core.types import Move, Player, Result
+from tictactoe.core.types import Cell, Move, Player, Result
 from tictactoe.benchmark.metrics import MatchConfig
 
 
@@ -173,19 +173,38 @@ class MCTSVanilla(BaseAgent):
         if state.result != Result.IN_PROGRESS:
             return self._terminal_value_for(state, mover)
 
-        sim_state = state.copy()
+        board = [list(r) for r in state.board]
+        n = state.n
+        k = state.k
+        current = state.current_player
+
+        # Build initial candidate set once from existing occupied cells.
+        candidates: set[Move] = set(Board.get_candidate_moves(state, radius=2))
 
         for _ in range(self.rollout_depth_limit):
-            empty = Board.get_all_empty_cells(sim_state.board)
-            if not empty:
-                return 0.0  # Draw
-            move = self._rng.choice(empty)
-            sim_state = sim_state.apply_move(move)
-            sim_state.result = Board.is_terminal(
-                sim_state.board, sim_state.n, sim_state.k, sim_state.last_move
-            )
-            if sim_state.result != Result.IN_PROGRESS:
-                return self._terminal_value_for(sim_state, mover)
+            if not candidates:
+                return 0.0  # No moves available
+            move = self._rng.choice(list(candidates))
+            candidates.discard(move)
+
+            row, col = move
+            board[row][col] = current.to_cell()
+
+            result = Board.is_terminal(board, n, k, move)
+            if result != Result.IN_PROGRESS:
+                return 1.0 if (
+                    (result.name == "X_WINS" and mover.name == "X") or
+                    (result.name == "O_WINS" and mover.name == "O")
+                ) else (-1.0 if result.name != "DRAW" else 0.0)
+
+            # Incrementally add new candidate neighbours of the placed piece.
+            for dr in range(-2, 3):
+                for dc in range(-2, 3):
+                    nr, nc = row + dr, col + dc
+                    if 0 <= nr < n and 0 <= nc < n and board[nr][nc] is Cell.EMPTY:
+                        candidates.add((nr, nc))
+
+            current = current.opponent()
 
         return 0.0  # Rollout limit reached
 

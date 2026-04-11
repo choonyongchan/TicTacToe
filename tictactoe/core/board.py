@@ -310,12 +310,10 @@ class Board:
         board = state.board
         n = state.n
 
-        occupied = [
-            (row, col)
-            for row in range(n)
-            for col in range(n)
-            if board[row][col] is not Cell.EMPTY
-        ]
+        # Use move_history as the list of occupied cells: O(moves) instead of
+        # O(n²). This matters most on large boards where a full board scan is
+        # very slow even though only a handful of cells are occupied.
+        occupied = state.move_history
 
         if not occupied:
             # Board is empty — prefer the centre.

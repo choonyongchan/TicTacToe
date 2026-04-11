@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TicTacToe AI</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════ HEADER -->
+<header class="header">
+  <div class="header-left">
+    <span class="logo">TTT<span class="logo-ai">·AI</span></span>
+  </div>
+  <div class="header-center">
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="hva">Human vs AI</button>
+      <button class="mode-tab" data-mode="hvh">Human vs Human</button>
+      <button class="mode-tab" data-mode="ava">AI vs AI</button>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn-icon" id="btn-settings" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06
+                 a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09
+                 A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83
+                 l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09
+                 A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83
+                 l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09
+                 a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83
+                 l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09
+                 a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════ MAIN -->
+<main class="main">
+
+  <!-- ── LEFT PANEL: controls -->
+  <aside class="panel panel-left">
+
+    <!-- Player configuration -->
+    <div class="card" id="player-config">
+      <div class="card-title">Players</div>
+
+      <!-- HvA controls -->
+      <div class="cfg-section" id="cfg-hva">
+        <div class="cfg-row">
+          <label>You play as</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" data-side="X">X</button>
+            <button class="toggle-btn" data-side="O">O</button>
+          </div>
+        </div>
+        <div class="cfg-row">
+          <label>Opponent AI</label>
+          <select id="sel-agent-opponent" class="select"></select>
+        </div>
+      </div>
+
+      <!-- HvH controls -->
+      <div class="cfg-section hidden" id="cfg-hvh">
+        <p class="cfg-note">Two humans share this device and take turns clicking.</p>
+      </div>
+
+      <!-- AvA controls -->
+      <div class="cfg-section hidden" id="cfg-ava">
+        <div class="cfg-row">
+          <label>X (first)</label>
+          <select id="sel-agent-x" class="select"></select>
+        </div>
+        <div class="cfg-row">
+          <label>O (second)</label>
+          <select id="sel-agent-o" class="select"></select>
+        </div>
+        <div class="cfg-row">
+          <label>Move delay</label>
+          <div class="input-group">
+            <input type="range" id="ava-delay" min="0" max="2000" step="100" value="500" />
+            <span id="ava-delay-label" class="input-suffix">500 ms</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Win probability -->
+    <div class="card" id="prob-card">
+      <div class="card-title">Win Probability</div>
+      <div class="prob-bar-wrap">
+        <div class="prob-bar-bg">
+          <div class="prob-bar-fill" id="prob-fill"></div>
+        </div>
+        <div class="prob-labels">
+          <span class="prob-x" id="prob-x-label">X 50%</span>
+          <span class="prob-o" id="prob-o-label">O 50%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="card" id="action-card">
+      <button class="btn btn-primary btn-full" id="btn-new-game">New Game</button>
+      <button class="btn btn-ghost btn-full" id="btn-resign" disabled>Resign</button>
+    </div>
+
+    <!-- Session score -->
+    <div class="card" id="session-score-card">
+      <div class="card-title">Session Score</div>
+      <div class="score-row">
+        <div class="score-block">
+          <div class="score-label" id="score-x-label">X</div>
+          <div class="score-num" id="score-x">0</div>
+        </div>
+        <div class="score-block">
+          <div class="score-label draws-label">DRAWS</div>
+          <div class="score-num" id="score-draws">0</div>
+        </div>
+        <div class="score-block">
+          <div class="score-label" id="score-o-label">O</div>
+          <div class="score-num" id="score-o">0</div>
+        </div>
+      </div>
+      <div id="streak-badge" class="streak-badge hidden"></div>
+    </div>
+
+  </aside>
+
+  <!-- ── CENTER: game board -->
+  <section class="center">
+    <div id="game-status" class="game-status">Press <strong>New Game</strong> to start</div>
+    <div id="board-wrap" class="board-wrap">
+      <div id="board" class="board"></div>
+    </div>
+    <div id="thinking-bar" class="thinking-bar hidden">
+      <div class="thinking-pulse"></div>
+      <span id="thinking-label">Thinking…</span>
+    </div>
+  </section>
+
+  <!-- ── RIGHT PANEL: history log -->
+  <aside class="panel panel-right">
+    <div class="card card-full">
+      <div class="card-title">
+        Game History
+        <button class="btn-tiny" id="btn-refresh-history">↺</button>
+      </div>
+      <div id="history-list" class="history-list">
+        <p class="empty-msg">No games recorded yet.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">All-time Leaderboard</div>
+      <div id="scores-table" class="scores-table">
+        <p class="empty-msg">No data yet.</p>
+      </div>
+    </div>
+  </aside>
+
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════ WIN OVERLAY -->
+<div id="win-overlay" class="win-overlay hidden">
+  <div class="win-box">
+    <div class="win-icon" id="win-icon">🏆</div>
+    <div class="win-title" id="win-title">Player X Wins!</div>
+    <div class="win-streak" id="win-streak"></div>
+    <button class="btn btn-primary" id="btn-win-new">Play Again</button>
+  </div>
+  <canvas id="confetti-canvas"></canvas>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ DRAW OVERLAY -->
+<div id="draw-overlay" class="win-overlay hidden">
+  <div class="win-box draw-box">
+    <div class="win-icon">🤝</div>
+    <div class="win-title">It's a Draw!</div>
+    <button class="btn btn-primary" id="btn-draw-new">Play Again</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SETTINGS MODAL -->
+<div id="settings-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Settings</span>
+      <button class="btn-icon" id="btn-settings-close">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="settings-section">
+        <div class="settings-section-title">Board</div>
+        <div class="settings-row">
+          <label>Board size (n×n)</label>
+          <input type="number" id="set-n" min="3" max="15" value="3" class="input-sm" />
+        </div>
+        <div class="settings-row">
+          <label>Win length (k) <span class="muted">0 = use n</span></label>
+          <input type="number" id="set-k" min="0" max="15" value="0" class="input-sm" />
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Budget</div>
+        <div class="settings-row">
+          <label>Match mode</label>
+          <select id="set-match-mode" class="select">
+            <option value="time">Time (ms)</option>
+            <option value="node">Nodes</option>
+            <option value="depth">Fixed depth</option>
+          </select>
+        </div>
+        <div class="settings-row" id="set-row-time">
+          <label>Time limit (ms)</label>
+          <input type="number" id="set-time" min="50" max="60000" value="1000" class="input-sm" />
+        </div>
+        <div class="settings-row hidden" id="set-row-node">
+          <label>Node budget</label>
+          <input type="number" id="set-nodes" min="1000" max="10000000" value="100000" class="input-sm" />
+        </div>
+        <div class="settings-row hidden" id="set-row-depth">
+          <label>Fixed depth</label>
+          <input type="number" id="set-depth" min="1" max="20" value="4" class="input-sm" />
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">MCTS</div>
+        <div class="settings-row">
+          <label>Exploration constant (c)</label>
+          <input type="number" id="set-mcts-c" min="0" max="5" step="0.1" value="1.414" class="input-sm" />
+        </div>
+        <div class="settings-row">
+          <label>Rollout depth limit</label>
+          <input type="number" id="set-mcts-rollout" min="1" max="1000" value="200" class="input-sm" />
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-settings-reset">Reset to defaults</button>
+      <button class="btn btn-primary" id="btn-settings-save">Apply</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

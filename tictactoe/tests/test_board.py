@@ -15,12 +15,19 @@ from tictactoe.core.types import Cell, Player, Result
 
 
 def make_state(rows: list[list[int]], player: str = "X") -> GameState:
-    """Build a GameState from a list-of-ints board (0=E, 1=X, 2=O)."""
+    """Build a GameState from a list-of-ints board (0=E, 1=X, 2=O).
+
+    Populates move_history from the board so that get_candidate_moves can
+    identify occupied cells without a full board scan.
+    """
     mapping = {0: Cell.EMPTY, 1: Cell.X, 2: Cell.O}
     board = [[mapping[v] for v in row] for row in rows]
     n = len(rows)
     current = Player.X if player == "X" else Player.O
-    state = GameState(board=board, current_player=current, n=n, k=n)
+    move_history = [(r, c) for r in range(n) for c in range(n) if rows[r][c] != 0]
+    last_move = move_history[-1] if move_history else None
+    state = GameState(board=board, current_player=current, n=n, k=n,
+                      last_move=last_move, move_history=move_history)
     return state
 
 

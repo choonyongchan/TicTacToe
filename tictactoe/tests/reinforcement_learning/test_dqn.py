@@ -1,12 +1,6 @@
 """Tests for DQNAgent."""
-try:
-    import numpy as np
-    HAS_NUMPY = True
-except ImportError:
-    HAS_NUMPY = False
-
+import numpy as np
 import pytest
-pytestmark = pytest.mark.skipif(not HAS_NUMPY, reason="numpy required")
 
 from tictactoe.agents.reinforcement_learning.dqn import DQNAgent
 from tictactoe.core.board import Board

@@ -94,10 +94,19 @@ class Game:
         chosen_move = agent.choose_move(self.state)
         elapsed_ms = (time.perf_counter_ns() - start_ns) / 1_000_000.0
 
+        # Capture instrumentation written by the agent BEFORE apply_move
+        # resets them (apply_move returns a fresh state with all metrics at 0).
+        nodes_visited = self.state.nodes_visited
+        max_depth_reached = self.state.max_depth_reached
+        prunings = self.state.prunings
+
         # Apply the move — returns a new state without mutating old one.
         self.state = self.state.apply_move(chosen_move)
 
-        # Write timing back to the new state.
+        # Restore instrumentation to the new state and finalise metrics.
+        self.state.nodes_visited = nodes_visited
+        self.state.max_depth_reached = max_depth_reached
+        self.state.prunings = prunings
         self.state.time_taken_ms = elapsed_ms
         self.state.compute_ebf()
 

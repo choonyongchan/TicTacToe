@@ -68,15 +68,31 @@ class GameState:
     # ---------------------------------------------------------------
 
     def copy(self) -> GameState:
-        """Return a deep copy of this state.
+        """Return a copy of this state.
 
-        The copy preserves all fields, including any attributes added by
-        subclasses. No references are shared between the original and the copy.
+        The board is shallow-copied row-by-row (Cell values are immutable
+        singletons, so a shallow copy is correct). The move_history list is
+        also copied. All other fields are scalars or immutable values.
 
         Returns:
-            A new GameState (or subclass instance) identical to self.
+            A new GameState identical to self with no shared mutable references.
         """
-        return copy.deepcopy(self)
+        return GameState(
+            board=[list(r) for r in self.board],
+            current_player=self.current_player,
+            n=self.n,
+            k=self.k,
+            move_history=list(self.move_history),
+            last_move=self.last_move,
+            result=self.result,
+            move_number=self.move_number,
+            nodes_visited=self.nodes_visited,
+            max_depth_reached=self.max_depth_reached,
+            time_taken_ms=self.time_taken_ms,
+            prunings=self.prunings,
+            effective_branching_factor=self.effective_branching_factor,
+            time_limit_exceeded=self.time_limit_exceeded,
+        )
 
     def apply_move(self, move: Move) -> GameState:
         """Return a new state with *move* applied, without mutating self.
@@ -91,33 +107,40 @@ class GameState:
         Win detection is intentionally excluded — that is the responsibility
         of Board.is_terminal and Game.step.
 
+        Uses a fast per-row shallow copy of the board rather than deepcopy,
+        which is significantly faster for large board sizes. Cell values are
+        enum members (immutable singletons) so a shallow copy is correct.
+
         Args:
             move: A (row, col) pair identifying the cell to claim.
 
         Returns:
             A new GameState with the move applied.
         """
-        new_state = self.copy()
         row, col = move
 
-        # Update board — copy already made, so mutation is safe here.
-        new_state.board[row][col] = self.current_player.to_cell()
+        # Fast board copy: shallow-copy each row, then overwrite the one cell.
+        # Cell enums are immutable singletons so shallow-copying rows is safe.
+        new_board: Board2D = [list(r) for r in self.board]
+        new_board[row][col] = self.current_player.to_cell()
 
-        # Update tracking fields.
-        new_state.move_history = self.move_history + [move]
-        new_state.last_move = move
-        new_state.move_number = self.move_number + 1
-        new_state.current_player = self.current_player.opponent()
-
-        # Reset instrumentation for the next decision.
-        new_state.nodes_visited = 0
-        new_state.max_depth_reached = 0
-        new_state.time_taken_ms = 0.0
-        new_state.prunings = 0
-        new_state.effective_branching_factor = 0.0
-        new_state.time_limit_exceeded = False
-
-        return new_state
+        return GameState(
+            board=new_board,
+            current_player=self.current_player.opponent(),
+            n=self.n,
+            k=self.k,
+            move_history=self.move_history + [move],
+            last_move=move,
+            result=Result.IN_PROGRESS,
+            move_number=self.move_number + 1,
+            # Instrumentation reset to 0 for the next agent decision.
+            nodes_visited=0,
+            max_depth_reached=0,
+            time_taken_ms=0.0,
+            prunings=0,
+            effective_branching_factor=0.0,
+            time_limit_exceeded=False,
+        )
 
     def compute_ebf(self) -> float:
         """Compute and store the effective branching factor.

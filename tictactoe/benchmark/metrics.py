@@ -340,6 +340,9 @@ class ScalabilityRecord:
         avg_ebf_per_size: Mean effective branching factor at each board size.
         avg_time_ms_per_size: Mean wall-clock time per move at each board size.
         win_rate_per_size: Win rate vs RandomAgent at each board size.
+        budget_exhausted_per_size: Number of moves where the search budget was
+            exhausted at each board size.
+        total_moves_per_size: Total moves made by this agent at each board size.
     """
 
     agent_name: str
@@ -350,6 +353,8 @@ class ScalabilityRecord:
     avg_ebf_per_size: list[float] = field(default_factory=list)
     avg_time_ms_per_size: list[float] = field(default_factory=list)
     win_rate_per_size: list[float] = field(default_factory=list)
+    budget_exhausted_per_size: list[int] = field(default_factory=list)
+    total_moves_per_size: list[int] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

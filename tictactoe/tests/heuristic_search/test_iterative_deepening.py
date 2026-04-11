@@ -27,7 +27,10 @@ def make_state(rows: list[list[int]], player: str = "X") -> GameState:
     board = [[mapping[v] for v in row] for row in rows]
     n = len(rows)
     current = Player.X if player == "X" else Player.O
-    return GameState(board=board, current_player=current, n=n, k=n)
+    move_history = [(r, c) for r in range(n) for c in range(n) if rows[r][c] != 0]
+    last_move = move_history[-1] if move_history else None
+    return GameState(board=board, current_player=current, n=n, k=n,
+                     last_move=last_move, move_history=move_history)
 
 
 def empty_state(n: int = 3) -> GameState:

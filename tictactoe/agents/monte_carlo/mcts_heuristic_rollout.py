@@ -192,9 +192,7 @@ class MCTSHeuristicRollout(BaseAgent):
                 move = block
             else:
                 # Softmax-weighted sampling over candidate moves
-                candidates = Board.get_candidate_moves(state, radius=1)
-                if not candidates:
-                    candidates = Board.get_all_empty_cells(state.board)
+                candidates = Board.get_candidate_moves(state, radius=2)
                 if not candidates:
                     return 0.0
                 scores = [max(0.01, score_move_statically(state, m)) for m in candidates]

@@ -269,6 +269,8 @@ class Arena:
         agents: list[BaseAgent],
         board_sizes: list[int],
         games_per_size: int = 20,
+        k_override: int | None = None,
+        max_moves_per_game: int | None = None,
     ) -> list[ScalabilityRecord]:
         """Measure how each agent scales across increasing board sizes.
 
@@ -279,6 +281,12 @@ class Arena:
             agents: Agents to profile.
             board_sizes: Board dimensions to test, e.g. [3, 5, 7, 9].
             games_per_size: Number of games per (agent, board_size) pair.
+            k_override: Winning line length used for all board sizes. When None,
+                defaults to min(board_n, 5) for boards larger than 5, or board_n
+                otherwise.
+            max_moves_per_game: Cap total moves per game. Games still in progress
+                at this limit are counted as draws. When None, defaults to
+                max(9, 10 * k) to keep large-board benchmarks practical.
 
         Returns:
             One ScalabilityRecord per agent.
@@ -293,19 +301,23 @@ class Arena:
             )
 
             for board_n in board_sizes:
+                board_k = k_override if k_override is not None else min(board_n, 5)
+                move_cap = max_moves_per_game if max_moves_per_game is not None \
+                    else max(9, 10 * board_k)
                 logger.info(
-                    "Scalability: %s n=%d (%d games)",
-                    agent.get_name(), board_n, games_per_size,
+                    "Scalability: %s n=%d k=%d max_moves=%d (%d games)",
+                    agent.get_name(), board_n, board_k, move_cap, games_per_size,
                 )
                 opponent = RandomAgent(seed=self._seed)
                 size_games: list[GameRecord] = []
 
                 for _ in range(games_per_size):
-                    game_record = self.single_game(
+                    game_record = self._single_game_capped(
                         agent_x=agent,
                         agent_o=opponent,
                         n=board_n,
-                        k=board_n,
+                        k=board_k,
+                        max_moves=move_cap,
                     )
                     size_games.append(game_record)
 
@@ -313,16 +325,66 @@ class Arena:
                 agent_stats = _collect_agent_stats(size_games, agent.get_name())
                 agg = aggregate_move_stats(agent_stats)
                 win_rate = _win_rate_against(size_games, agent.get_name())
+                budget_exhausted = sum(1 for s in agent_stats if s.time_limit_exceeded)
 
                 record.avg_nodes_per_size.append(agg["mean_nodes"])
                 record.avg_depth_per_size.append(agg["mean_depth"])
                 record.avg_ebf_per_size.append(agg["mean_ebf"])
                 record.avg_time_ms_per_size.append(agg["mean_time_ms"])
                 record.win_rate_per_size.append(win_rate)
+                record.budget_exhausted_per_size.append(budget_exhausted)
+                record.total_moves_per_size.append(len(agent_stats))
 
             records.append(record)
 
         return records
+
+    def _single_game_capped(
+        self,
+        agent_x: BaseAgent,
+        agent_o: BaseAgent,
+        n: int,
+        k: int,
+        max_moves: int,
+    ) -> GameRecord:
+        """Play one game capped at max_moves total moves.
+
+        Games still in progress at the cap are recorded as draws. This keeps
+        scalability sweeps practical on large boards where random play
+        produces very long games.
+        """
+        game = Game(
+            agent_x=agent_x,
+            agent_o=agent_o,
+            n=n,
+            k=k,
+            match_config=self.match_config,
+        )
+
+        per_move_stats: list[MoveStats] = []
+
+        while (
+            game.state.result is Result.IN_PROGRESS
+            and game.state.move_number < max_moves
+        ):
+            moving_player = game.state.current_player
+            state_after = game.step()
+            per_move_stats.append(_extract_move_stats(state_after, moving_player))
+
+        # If capped before terminal, treat as draw for win-rate purposes.
+        final_result = game.state.result
+
+        return GameRecord(
+            agent_x_name=agent_x.get_name(),
+            agent_o_name=agent_o.get_name(),
+            n=n,
+            k=k,
+            match_config=self.match_config,
+            result=final_result,
+            total_moves=game.state.move_number,
+            move_history=list(game.state.move_history),
+            per_move_stats=per_move_stats,
+        )
 
     def sanity_check(
         self, agent: BaseAgent, games: int = 50

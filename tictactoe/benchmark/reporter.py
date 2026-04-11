@@ -139,6 +139,87 @@ def print_round_robin_table(result: RoundRobinResult) -> None:
     print(f"{'='*70}\n")
 
 
+def print_performance_report(
+    records: list[ScalabilityRecord],
+    agent_tiers: dict[str, int] | None = None,
+    k_override: int | None = None,
+) -> None:
+    """Print a comprehensive performance comparison across all agents and board sizes.
+
+    Columns shown per (agent, board_size) row:
+    - Tier
+    - Board size (n×n, k-in-a-row)
+    - Avg nodes visited/expanded per move
+    - Avg effective branching factor
+    - Avg time per move (ms)
+    - Win rate vs RandomAgent
+    - Budget exhausted: moves where search ran out of time/nodes/depth
+
+    Args:
+        records: Scalability records, one per agent.
+        agent_tiers: Optional mapping from agent name to tier number.
+    """
+    if not records:
+        print("No performance data to display.")
+        return
+
+    if agent_tiers is None:
+        agent_tiers = {}
+
+    # Determine the budget description
+    first_cfg = records[0].match_config
+    mode = first_cfg.mode
+    if mode is MatchMode.TIME_CONTROLLED:
+        budget_desc = f"Time-controlled ({first_cfg.time_limit_ms:.0f} ms/move)"
+    elif mode is MatchMode.NODE_CONTROLLED:
+        budget_desc = f"Node-controlled ({first_cfg.node_budget:,} nodes/move)"
+    else:
+        budget_desc = f"Depth-controlled (depth={first_cfg.fixed_depth}) [ABLATION]"
+
+    print(f"\n{'='*100}")
+    print("  Performance Report — Search Algorithm Comparison")
+    print(f"  Budget: {budget_desc} | Win rate vs RandomAgent")
+    print(f"{'='*100}")
+    hdr = (
+        f"  {'Agent':<30} {'T':>2}  {'n':>4}{'k':>3}"
+        f"  {'AvgNodes':>10}  {'AvgEBF':>7}  {'AvgTime(ms)':>12}"
+        f"  {'WinRate':>8}  {'BudgetExpd':>12}"
+    )
+    print(hdr)
+    print(f"  {'-'*96}")
+
+    for record in records:
+        tier = agent_tiers.get(record.agent_name, 0)
+        agent_label = record.agent_name[:29]
+        for i, board_n in enumerate(record.board_sizes):
+            avg_nodes = record.avg_nodes_per_size[i] if i < len(record.avg_nodes_per_size) else 0.0
+            avg_ebf = record.avg_ebf_per_size[i] if i < len(record.avg_ebf_per_size) else 0.0
+            avg_time = record.avg_time_ms_per_size[i] if i < len(record.avg_time_ms_per_size) else 0.0
+            win_rate = record.win_rate_per_size[i] if i < len(record.win_rate_per_size) else 0.0
+            exhausted = record.budget_exhausted_per_size[i] if i < len(record.budget_exhausted_per_size) else 0
+            total_moves = record.total_moves_per_size[i] if i < len(record.total_moves_per_size) else 0
+            k_val = k_override if k_override is not None else min(board_n, 5)
+
+            budget_str = f"{exhausted}/{total_moves}"
+
+            # Only print agent name on first row for this record
+            name_col = agent_label if i == 0 else ""
+            tier_col = f"T{tier}" if i == 0 else ""
+
+            print(
+                f"  {name_col:<30} {tier_col:>2}  {board_n:>4}{k_val:>3}"
+                f"  {avg_nodes:>10,.0f}  {avg_ebf:>7.3f}  {avg_time:>12.2f}"
+                f"  {win_rate:>7.1%}  {budget_str:>12}"
+            )
+
+        # Blank line between agents
+        print()
+
+    print(f"  Notes: Nodes Visited = Nodes Expanded (this framework counts both identically).")
+    print(f"         BudgetExpd = moves where search budget was exhausted / total moves made.")
+    print(f"{'='*100}\n")
+
+
 def print_scalability_table(records: list[ScalabilityRecord]) -> None:
     """Print a per-agent scalability summary across board sizes.
 
