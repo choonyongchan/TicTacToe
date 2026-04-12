@@ -47,6 +47,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Winning line length. Defaults to min(n, 5).",
     )
     parser.add_argument(
+        "--k-values",
+        default=None,
+        metavar="KS",
+        dest="k_values",
+        help=(
+            "Comma-separated k values for a benchmark k sweep, e.g. '2,3,4'. "
+            "Each k must satisfy 1 <= k <= max board size. When provided, --k "
+            "is ignored and one full sweep is run per k value."
+        ),
+    )
+    parser.add_argument(
         "--games", type=int, default=20,
         help="Games per pair for benchmark / sanity modes.",
     )
@@ -234,7 +245,19 @@ def run_benchmark(args: argparse.Namespace) -> None:
 
     # Primary board/k for round-robin.
     primary_n = board_sizes[0]
-    primary_k = args.k if args.k is not None else min(primary_n, 5) if primary_n > 5 else primary_n
+
+    # Build k list: --k-values takes priority over --k.
+    if args.k_values is not None:
+        k_list = [int(x.strip()) for x in args.k_values.split(",")]
+        invalid = [k for k in k_list if k < 1 or k > max(board_sizes)]
+        if invalid:
+            print(f"Invalid k values (must be 1..{max(board_sizes)}): {invalid}")
+            return
+    else:
+        single_k = args.k if args.k is not None else (
+            min(primary_n, 5) if primary_n > 5 else primary_n
+        )
+        k_list = [single_k]
 
     all_tier_agents = _build_tier_agents(config)
 
@@ -253,41 +276,54 @@ def run_benchmark(args: argparse.Namespace) -> None:
     print(f"\n{'='*60}")
     print("  Benchmark — Scalability Sweep")
     print(f"  Board sizes : {board_sizes}")
+    print(f"  k values    : {k_list}")
     print(f"  Tiers       : {selected_tiers}")
     print(f"  Games/size  : {args.games}  |  Seed: {args.seed}")
     print(f"  Mode        : {args.match_mode}")
     print(f"{'='*60}")
 
-    # Scalability sweep: each agent vs RandomAgent at every board size.
-    arena = Arena(
-        n=primary_n,
-        k=primary_k,
-        num_games=args.games,
-        match_config=config,
-    )
-    arena.set_seed(args.seed)
+    for sweep_k in k_list:
+        # Skip board sizes smaller than k.
+        valid_boards = [n for n in board_sizes if sweep_k <= n]
+        if not valid_boards:
+            print(f"\n  Skipping k={sweep_k} — no board sizes >= k")
+            continue
 
-    records = arena.scalability_sweep(
-        agents=sweep_agents,
-        board_sizes=board_sizes,
-        games_per_size=args.games,
-        k_override=args.k,
-    )
+        if len(k_list) > 1:
+            print(f"\n{'─'*60}")
+            print(f"  k = {sweep_k}")
+            print(f"{'─'*60}")
 
-    print_performance_report(records, agent_tiers, k_override=args.k)
+        arena = Arena(
+            n=valid_boards[0],
+            k=sweep_k,
+            num_games=args.games,
+            match_config=config,
+        )
+        arena.set_seed(args.seed)
 
-    # Round-robin within each tier for the primary board size only.
-    if len(board_sizes) == 1:
-        for tier in selected_tiers:
-            tier_agents = all_tier_agents.get(tier, [])
-            if len(tier_agents) < 2:
-                continue
-            print(f"\n{'='*60}")
-            print(f"  Tier {tier} Round-Robin | {primary_n}×{primary_n} (k={primary_k})")
-            print(f"  {args.games} games per pair | Mode: {args.match_mode}")
-            print(f"{'='*60}")
-            rr_result = arena.round_robin(tier_agents)
-            print_round_robin_table(rr_result)
+        records = arena.scalability_sweep(
+            agents=sweep_agents,
+            board_sizes=valid_boards,
+            games_per_size=args.games,
+            k_override=sweep_k,
+        )
+
+        print_performance_report(records, agent_tiers, k_override=sweep_k)
+
+        # Round-robin within each tier for the first valid board size only.
+        if len(valid_boards) == 1:
+            primary_n_for_k = valid_boards[0]
+            for tier in selected_tiers:
+                tier_agents = all_tier_agents.get(tier, [])
+                if len(tier_agents) < 2:
+                    continue
+                print(f"\n{'='*60}")
+                print(f"  Tier {tier} Round-Robin | {primary_n_for_k}×{primary_n_for_k} (k={sweep_k})")
+                print(f"  {args.games} games per pair | Mode: {args.match_mode}")
+                print(f"{'='*60}")
+                rr_result = arena.round_robin(tier_agents)
+                print_round_robin_table(rr_result)
 
 
 def run_correctness(args: argparse.Namespace) -> None:

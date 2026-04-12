@@ -201,6 +201,18 @@ class Arena:
                 record = self.single_game(agent_a, agent_b)
                 result_for_a = _result_for_player(record, agent_a.get_name())
 
+            if record.result is not Result.DRAW:
+                winner = (
+                    record.agent_x_name if record.result is Result.X_WINS
+                    else record.agent_o_name
+                )
+                logger.debug(
+                    "Game %d solved: %s wins (%s vs %s) | n=%d k=%d",
+                    game_index, winner,
+                    record.agent_x_name, record.agent_o_name,
+                    self.n, self.k,
+                )
+
             games.append(record)
 
             if result_for_a is Result.X_WINS or result_for_a is Result.O_WINS:
@@ -311,7 +323,7 @@ class Arena:
                 opponent = RandomAgent(seed=self._seed)
                 size_games: list[GameRecord] = []
 
-                for _ in range(games_per_size):
+                for game_idx in range(games_per_size):
                     game_record = self._single_game_capped(
                         agent_x=agent,
                         agent_o=opponent,
@@ -319,6 +331,17 @@ class Arena:
                         k=board_k,
                         max_moves=move_cap,
                     )
+                    if game_record.result is not Result.DRAW:
+                        winner = (
+                            game_record.agent_x_name if game_record.result is Result.X_WINS
+                            else game_record.agent_o_name
+                        )
+                        logger.debug(
+                            "Game %d solved: %s wins (%s vs %s) | n=%d k=%d",
+                            game_idx, winner,
+                            game_record.agent_x_name, game_record.agent_o_name,
+                            board_n, board_k,
+                        )
                     size_games.append(game_record)
 
                 # Collect all agent move stats for this board size.

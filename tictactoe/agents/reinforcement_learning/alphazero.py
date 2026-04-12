@@ -425,7 +425,7 @@ class AlphaZeroAgent(BaseAgent):
             return self.temperature
         # Linear decay from self.temperature toward _TEMP_FLOOR
         progress = min((move - self._TEMP_MOVES) / self._TEMP_MOVES, 1.0)
-        return self.temperature + progress * (self._TEMP_FLOOR - self.temperature)
+        return max(self._TEMP_FLOOR, self.temperature + progress * (self._TEMP_FLOOR - self.temperature))
 
     def _find_reusable_root(
         self,

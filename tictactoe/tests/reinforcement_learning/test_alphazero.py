@@ -366,12 +366,14 @@ class TestAlphaZeroOptimisations:
         assert agent._find_reusable_root((1, 1)) is None
 
     def test_find_reusable_root_returns_none_for_no_last_move(self):
+        from tictactoe.agents.reinforcement_learning.alphazero import PUCTNode
         agent = AlphaZeroAgent(n=3, num_simulations=5)
         agent._cached_root = PUCTNode(make_empty_state())
         assert agent._find_reusable_root(None) is None
 
     def test_tree_reuse_cached_root_set_after_choose_move(self):
         """After choose_move, _cached_root must be set (or None on fallback)."""
+        from tictactoe.agents.reinforcement_learning.alphazero import PUCTNode
         agent = AlphaZeroAgent(n=3, num_simulations=10, network_type="quantized")
         state = make_empty_state()
         agent.choose_move(state)

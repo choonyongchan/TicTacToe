@@ -75,7 +75,7 @@ def test_blocks_immediate_opponent_win():
 def test_win_rate_vs_random_agent():
     """RAVE should win or draw the vast majority of games against a random agent."""
     result = Arena(n=3, num_games=30).duel(
-        MCTSRave(match_config=MatchConfig.node_controlled(500)),
+        MCTSRave(match_config=MatchConfig.node_controlled(1000)),
         RandomAgent(),
     )
     # RAVE with sufficient budget should not lose more than a tiny fraction

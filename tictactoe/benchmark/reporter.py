@@ -49,7 +49,7 @@ def print_duel_summary(result: DuelResult) -> None:
         ("Win Rate",      f"{result.win_rate_a():.3f}",  f"{result.win_rate_b():.3f}"),
         ("Elo",           f"{result.elo_a:.1f}",         f"{result.elo_b:.1f}"),
         ("Avg Nodes",     f"{result.avg_nodes_a:.1f}",   f"{result.avg_nodes_b:.1f}"),
-        ("Avg Time (ms)", f"{result.avg_time_ms_a:.2f}", f"{result.avg_time_ms_b:.2f}"),
+        ("Avg Time/Move (ms)", f"{result.avg_time_ms_a:.2f}", f"{result.avg_time_ms_b:.2f}"),
         ("Avg EBF",       f"{result.avg_ebf_a:.3f}",     f"{result.avg_ebf_b:.3f}"),
         ("Avg Depth",     f"{result.avg_depth_a:.1f}",   f"{result.avg_depth_b:.1f}"),
         ("Avg Prune Rate",f"{result.avg_pruning_rate_a:.3f}", f"{result.avg_pruning_rate_b:.3f}"),
@@ -86,7 +86,7 @@ def print_efficiency_comparison(results: list[DuelResult]) -> None:
     print(f"\n{'='*90}")
     print("  Efficiency Comparison (Tier 1 — ranked by avg nodes, lower is better)")
     print(f"{'='*90}")
-    header = f"  {'Agent':<28} {'Avg Nodes':>12} {'Std Nodes':>12} {'Avg Time':>10} {'Avg Depth':>10} {'Avg EBF':>10} {'Prune Rate':>12}"
+    header = f"  {'Agent':<28} {'Avg Nodes':>12} {'Std Nodes':>12} {'Avg ms/Move':>10} {'Avg Depth':>10} {'Avg EBF':>10} {'Prune Rate':>12}"
     print(header)
     print(f"  {'-'*86}")
 
@@ -182,7 +182,7 @@ def print_performance_report(
     print(f"{'='*100}")
     hdr = (
         f"  {'Agent':<30} {'T':>2}  {'n':>4}{'k':>3}"
-        f"  {'AvgNodes':>10}  {'AvgEBF':>7}  {'AvgTime(ms)':>12}"
+        f"  {'AvgNodes':>10}  {'AvgEBF':>7}  {'Avg ms/Move':>12}"
         f"  {'WinRate':>8}  {'BudgetExpd':>12}"
     )
     print(hdr)
@@ -215,7 +215,8 @@ def print_performance_report(
         # Blank line between agents
         print()
 
-    print(f"  Notes: Nodes Visited = Nodes Expanded (this framework counts both identically).")
+    print(f"  Notes: Avg ms/Move = average wall-clock time per move (≤ budget for TIME_CONTROLLED).")
+    print(f"         Nodes Visited = Nodes Expanded (this framework counts both identically).")
     print(f"         BudgetExpd = moves where search budget was exhausted / total moves made.")
     print(f"{'='*100}\n")
 
