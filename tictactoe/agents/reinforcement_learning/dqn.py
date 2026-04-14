@@ -3,15 +3,14 @@
 Uses a QNetwork with experience replay and a target network updated
 periodically. Inference masks illegal moves with -inf.
 
-Requires numpy.
-
 Dependency chain position: types → state → board → game → agents → benchmark.
 """
 from __future__ import annotations
 
 import random
 
-import numpy as np
+import torch
+import torch.nn.functional as F
 
 from tictactoe.agents.base_agent import BaseAgent
 from tictactoe.agents.reinforcement_learning.shared.replay_buffer import (
@@ -70,13 +69,14 @@ class DQNAgent(BaseAgent):
         self._online = QNetwork(n, self.k)
         self._target = self._online.copy()
         self._buffer = ReplayBuffer(_cap)
+        self._optimizer = torch.optim.Adam(self._online.parameters(), lr=self.lr)
 
     # ------------------------------------------------------------------
     # BaseAgent interface
     # ------------------------------------------------------------------
 
     def choose_move(self, state: GameState) -> Move:
-        from tictactoe.agents.reinforcement_learning.shared.neural_net import encode_board_flat
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import encode_board_flat, DEVICE
         state.nodes_visited = 1
         state.max_depth_reached = 0
         state.prunings = 0
@@ -91,14 +91,15 @@ class DQNAgent(BaseAgent):
             return self._rng.choice(empty_cells)
 
         x = encode_board_flat(state.board, state.current_player, state.n)
-        q_vals = self._online.forward(x)
+        with torch.no_grad():
+            q_vals = self._online.forward(x)
 
         # Mask illegal moves with -inf
-        mask = np.full(state.n * state.n, -np.inf, dtype=np.float32)
+        mask = torch.full((state.n * state.n,), float('-inf'), dtype=torch.float32, device=DEVICE)
         for r, c in empty_cells:
             mask[r * state.n + c] = q_vals[r * state.n + c]
 
-        best_idx = int(np.argmax(mask))
+        best_idx = int(torch.argmax(mask).item())
         return (best_idx // state.n, best_idx % state.n)
 
     def get_name(self) -> str:
@@ -130,41 +131,46 @@ class DQNAgent(BaseAgent):
 
         if self._steps % self.target_update_freq == 0:
             self._target = self._online.copy()
+            # keep optimizer in sync with lr
+            for pg in self._optimizer.param_groups:
+                pg['lr'] = self.lr
 
         return loss
 
     def _update_weights(self, batch: list[Experience]) -> float:
-        """Compute DQN targets and update online network via SGD on output layer."""
-        from tictactoe.agents.reinforcement_learning.shared.neural_net import relu
+        """Compute DQN targets and update online network via autograd."""
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import DEVICE
 
-        states = np.array([e.state_tensor for e in batch], dtype=np.float32)
-        next_states = np.array([e.next_state_tensor for e in batch], dtype=np.float32)
-        rewards = np.array([e.reward for e in batch], dtype=np.float32)
-        dones = np.array([float(e.done) for e in batch], dtype=np.float32)
-        actions = [e.action for e in batch]
+        states = torch.stack([
+            e.state_tensor if isinstance(e.state_tensor, torch.Tensor)
+            else torch.tensor(e.state_tensor, dtype=torch.float32)
+            for e in batch
+        ]).to(DEVICE)
+        next_states = torch.stack([
+            e.next_state_tensor if isinstance(e.next_state_tensor, torch.Tensor)
+            else torch.tensor(e.next_state_tensor, dtype=torch.float32)
+            for e in batch
+        ]).to(DEVICE)
+        rewards = torch.tensor([e.reward for e in batch], dtype=torch.float32, device=DEVICE)
+        dones = torch.tensor([float(e.done) for e in batch], dtype=torch.float32, device=DEVICE)
+        actions = torch.tensor([e.action for e in batch], dtype=torch.long, device=DEVICE)
 
-        q_current_all = np.array([self._online.forward(states[i]) for i in range(len(batch))])
-        q_next_all = np.array([self._target.forward(next_states[i]) for i in range(len(batch))])
-        max_q_next = q_next_all.max(axis=1)
-        targets = rewards + self.gamma * max_q_next * (1.0 - dones)
+        # Compute targets using the frozen target network
+        with torch.no_grad():
+            q_next = torch.stack([self._target.forward(next_states[i]) for i in range(len(batch))])
+            max_q_next = q_next.max(dim=1).values
+            q_targets_sa = rewards + self.gamma * max_q_next * (1.0 - dones)
 
-        q_targets = q_current_all.copy()
-        for i, a in enumerate(actions):
-            q_targets[i, a] = targets[i]
+        # Predict Q-values for chosen actions
+        q_pred_all = torch.stack([self._online.forward(states[i]) for i in range(len(batch))])
+        q_pred_sa = q_pred_all.gather(1, actions.unsqueeze(1)).squeeze(1)
 
-        loss = float(np.mean((q_current_all - q_targets) ** 2))
-        delta = (q_current_all - q_targets)
+        loss = F.mse_loss(q_pred_sa, q_targets_sa)
+        self._optimizer.zero_grad()
+        loss.backward()
+        self._optimizer.step()
 
-        h2_all = np.array([
-            relu(relu(states[i] @ self._online._w1 + self._online._b1) @ self._online._w2 + self._online._b2)
-            for i in range(len(batch))
-        ])
-        dw3 = (h2_all.T @ delta) / len(batch)
-        db3 = delta.mean(axis=0)
-        self._online._w3 -= self.lr * dw3
-        self._online._b3 -= self.lr * db3
-
-        return loss
+        return loss.item()
 
     # ------------------------------------------------------------------
     # Persistence
@@ -175,6 +181,7 @@ class DQNAgent(BaseAgent):
         self._online.save(path)
 
     def load(self, path: str) -> None:
-        """Load online network weights from path.npz and sync target."""
-        self._online.load(path + '.npz')
+        """Load online network weights from path.pt and sync target."""
+        self._online.load(path)
         self._target = self._online.copy()
+        self._optimizer = torch.optim.Adam(self._online.parameters(), lr=self.lr)

@@ -3,15 +3,14 @@
 Uses a PolicyValueNetwork, computes GAE advantages, and applies the clipped
 surrogate objective for policy updates.
 
-Requires numpy.
-
 Dependency chain position: types → state → board → game → agents → benchmark.
 """
 from __future__ import annotations
 
 import random
 
-import numpy as np
+import torch
+import torch.nn.functional as F
 
 from tictactoe.agents.base_agent import BaseAgent
 from tictactoe.core.board import Board
@@ -60,6 +59,7 @@ class PPOSelfPlayAgent(BaseAgent):
         self.k = k if k is not None else n
         self._net = PolicyValueNetwork(n, k=self.k)
         self._rng = random.Random(seed)
+        self._optimizer = torch.optim.Adam(self._net.parameters(), lr=self.lr)
 
     # ------------------------------------------------------------------
     # BaseAgent interface
@@ -67,7 +67,7 @@ class PPOSelfPlayAgent(BaseAgent):
 
     def choose_move(self, state: GameState) -> Move:
         from tictactoe.agents.reinforcement_learning.shared.neural_net import (
-            encode_board_flat, softmax
+            encode_board_flat, DEVICE
         )
         state.nodes_visited = 1
         state.max_depth_reached = 0
@@ -79,19 +79,19 @@ class PPOSelfPlayAgent(BaseAgent):
             return (0, 0)
 
         x = encode_board_flat(state.board, state.current_player, state.n)
-        policy_logits, _ = self._net.forward(x)
+        with torch.no_grad():
+            policy_logits, _ = self._net.forward(x)
 
         # Mask illegal moves: set logits for occupied cells to very negative
         n = state.n
-        legal_set = {r * n + c for r, c in empty_cells}
-        masked_logits = np.full(n * n, -1e9, dtype=np.float32)
-        for idx in legal_set:
-            masked_logits[idx] = policy_logits[idx]
+        masked_logits = torch.full((n * n,), -1e9, dtype=torch.float32, device=DEVICE)
+        for r, c in empty_cells:
+            masked_logits[r * n + c] = policy_logits[r * n + c]
 
-        probs = softmax(masked_logits)
+        probs = F.softmax(masked_logits, dim=-1)
 
         # Sample from policy distribution
-        action_idx = int(np.random.choice(n * n, p=probs))
+        action_idx = int(torch.multinomial(probs, 1).item())
         return (action_idx // n, action_idx % n)
 
     def get_name(self) -> str:
@@ -140,10 +140,10 @@ class PPOSelfPlayAgent(BaseAgent):
         advantages: list[float],
         returns: list[float],
     ) -> float:
-        """Perform one PPO policy and value update step.
+        """Perform one PPO policy and value update step via autograd.
 
         Args:
-            states: Encoded state vectors (numpy arrays).
+            states: Encoded state vectors (tensors or arrays).
             actions: Action indices chosen.
             old_log_probs: Log probabilities under the old policy.
             advantages: GAE advantage estimates.
@@ -152,19 +152,32 @@ class PPOSelfPlayAgent(BaseAgent):
         Returns:
             The combined PPO loss value.
         """
-        from tictactoe.agents.reinforcement_learning.shared.neural_net import softmax
-        total_loss = 0.0
-        for x, a, old_lp, adv, ret in zip(states, actions, old_log_probs, advantages, returns):
-            policy_logits, value = self._net.forward(x)
-            probs = softmax(policy_logits)
-            log_prob = float(np.log(np.clip(probs[a], 1e-9, 1.0)))
-            ratio = np.exp(log_prob - old_lp)
-            clipped_ratio = np.clip(ratio, 1.0 - self.epsilon_clip, 1.0 + self.epsilon_clip)
-            policy_loss = -min(float(ratio * adv), float(clipped_ratio * adv))
-            value_loss = (value - ret) ** 2
-            total_loss += policy_loss + 0.5 * value_loss
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import DEVICE
 
-        return total_loss / max(len(states), 1)
+        old_lp_t = torch.tensor(old_log_probs, dtype=torch.float32, device=DEVICE)
+        adv_t = torch.tensor(advantages, dtype=torch.float32, device=DEVICE)
+        ret_t = torch.tensor(returns, dtype=torch.float32, device=DEVICE)
+
+        self._optimizer.zero_grad()
+        total_loss = torch.tensor(0.0, device=DEVICE)
+
+        for i, (x, a) in enumerate(zip(states, actions)):
+            if not isinstance(x, torch.Tensor):
+                x = torch.tensor(x, dtype=torch.float32, device=DEVICE)
+            policy_logits, value = self._net.forward(x)
+            log_probs = F.log_softmax(policy_logits, dim=-1)
+            log_prob = log_probs[a]
+            ratio = torch.exp(log_prob - old_lp_t[i])
+            clipped = torch.clamp(ratio, 1.0 - self.epsilon_clip, 1.0 + self.epsilon_clip)
+            policy_loss = -torch.min(ratio * adv_t[i], clipped * adv_t[i])
+            value_loss = F.mse_loss(value.reshape(1), ret_t[i].reshape(1))
+            total_loss = total_loss + policy_loss + 0.5 * value_loss
+
+        mean_loss = total_loss / max(len(states), 1)
+        mean_loss.backward()
+        self._optimizer.step()
+
+        return mean_loss.item()
 
     # ------------------------------------------------------------------
     # Persistence
@@ -175,5 +188,6 @@ class PPOSelfPlayAgent(BaseAgent):
         self._net.save(path)
 
     def load(self, path: str) -> None:
-        """Load network weights from path.npz."""
-        self._net.load(path + '.npz')
+        """Load network weights from path.pt."""
+        self._net.load(path)
+        self._optimizer = torch.optim.Adam(self._net.parameters(), lr=self.lr)

@@ -49,14 +49,19 @@ def test_data_augmentation_produces_8_variants():
 
 
 def test_save_load_roundtrip(tmp_path):
-    import numpy as np
+    import torch
     agent = AlphaZeroAgent(n=3)
     path = str(tmp_path / "az_model")
     agent.save(path)
     agent2 = AlphaZeroAgent(n=3)
-    agent2._net.load(path + '.npz')
-    for w1, w2 in zip(agent._net.get_weights(), agent2._net.get_weights()):
-        assert np.allclose(w1, w2)
+    agent2.load(path + '.pt')
+    from tictactoe.agents.reinforcement_learning.shared.neural_net import encode_board_flat
+    from tictactoe.core.types import Player
+    x = encode_board_flat(Board.create(3), Player.X, 3)
+    p1, v1 = agent._net.forward(x)
+    p2, v2 = agent2._net.forward(x)
+    assert torch.allclose(p1, p2, atol=1e-5)
+    assert torch.allclose(v1, v2, atol=1e-5)
 
 
 # ---------------------------------------------------------------------------
@@ -64,8 +69,8 @@ def test_save_load_roundtrip(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_ternary_network_type_constructs_and_returns_legal_move():
-    agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="ternary")
+def test_bitnet_network_type_constructs_and_returns_legal_move():
+    agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="bitnet")
     state = make_empty_state()
     move = agent.choose_move(state)
     r, c = move
@@ -83,9 +88,9 @@ def test_get_name_includes_network_type_quantized():
     assert "quantized" in agent.get_name()
 
 
-def test_get_name_includes_network_type_ternary():
-    agent = AlphaZeroAgent(n=3, network_type="ternary")
-    assert "ternary" in agent.get_name()
+def test_get_name_includes_network_type_bitnet():
+    agent = AlphaZeroAgent(n=3, network_type="bitnet")
+    assert "bitnet" in agent.get_name()
 
 
 # ---------------------------------------------------------------------------
@@ -110,23 +115,22 @@ def test_train_on_example_returns_finite_loss():
 
 def test_train_on_example_changes_network_bias():
     """After a training step, at least the policy bias must differ."""
-    import numpy as np
+    import torch
     agent = AlphaZeroAgent(n=3, num_simulations=5)
     board = Board.create(3)
     from tictactoe.agents.reinforcement_learning.shared.neural_net import encode_board_flat
     from tictactoe.core.types import Player
     x = encode_board_flat(board, Player.X, 3)
     target_policy = np.ones(9, dtype=np.float32) / 9
-    bp_before = agent._net._bp.copy()
+    bp_before = agent._net.bp.detach().clone()
     agent.train_on_example(x, target_policy, target_value=1.0)
-    assert not np.allclose(agent._net._bp, bp_before), "Bias should have updated"
+    assert not torch.allclose(agent._net.bp, bp_before), "Bias should have updated"
 
 
-def test_train_on_example_ternary_network():
-    """train_on_example must work for the ternary network type too."""
-    import numpy as np
+def test_train_on_example_bitnet_network():
+    """train_on_example must work for the bitnet network type too."""
     import math
-    agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="ternary")
+    agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="bitnet")
     board = Board.create(3)
     from tictactoe.agents.reinforcement_learning.shared.neural_net import encode_board_flat
     from tictactoe.core.types import Player
@@ -202,20 +206,20 @@ def test_board_arr_to_flat_shape():
 # ---------------------------------------------------------------------------
 
 
-class TestAlphaZeroLargeNetworkTypes:
-    """AlphaZero must support quantized_large and ternary_large network types."""
+class TestAlphaZeroAllNetworkTypes:
+    """AlphaZero must support all three network types and their aliases."""
 
-    def test_quantized_large_constructs_and_returns_legal_move(self):
+    def test_ternary_bitnet_large_constructs_and_returns_legal_move(self):
         from tictactoe.core.types import Cell
-        agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="quantized_large")
+        agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="ternary_bitnet_large")
         state = make_empty_state()
         move = agent.choose_move(state)
         r, c = move
         assert state.board[r][c] is Cell.EMPTY
 
-    def test_ternary_large_constructs_and_returns_legal_move(self):
+    def test_bitnet_alias_constructs_and_returns_legal_move(self):
         from tictactoe.core.types import Cell
-        agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="ternary_large")
+        agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="bitnet")
         state = make_empty_state()
         move = agent.choose_move(state)
         r, c = move
@@ -237,22 +241,22 @@ class TestAlphaZeroLargeNetworkTypes:
         r, c = move
         assert state.board[r][c] is Cell.EMPTY
 
-    def test_get_name_includes_quantized_large(self):
-        agent = AlphaZeroAgent(n=3, network_type="quantized_large")
-        assert "quantized_large" in agent.get_name()
+    def test_get_name_includes_ternary_bitnet_large(self):
+        agent = AlphaZeroAgent(n=3, network_type="ternary_bitnet_large")
+        assert "ternary_bitnet_large" in agent.get_name()
 
-    def test_get_name_includes_ternary_large(self):
-        agent = AlphaZeroAgent(n=3, network_type="ternary_large")
-        assert "ternary_large" in agent.get_name()
+    def test_bitnet_alias_resolves_to_ternary_bitnet_large_name(self):
+        agent = AlphaZeroAgent(n=3, network_type="bitnet")
+        assert "ternary_bitnet_large" in agent.get_name()
 
     def test_invalid_network_type_updated_message(self):
-        """ValueError message must list all valid network types."""
-        with pytest.raises(ValueError, match="quantized_large"):
+        """ValueError message must list valid network types."""
+        with pytest.raises(ValueError, match="quantized"):
             AlphaZeroAgent(n=3, network_type="nonexistent")
 
-    def test_train_on_example_quantized_large_finite_loss(self):
+    def test_train_on_example_bitnet_finite_loss(self):
         import math
-        agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="quantized_large")
+        agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="ternary_bitnet_large")
         board = Board.create(3)
         from tictactoe.agents.reinforcement_learning.shared.neural_net import encode_board_flat
         from tictactoe.core.types import Player
@@ -261,9 +265,9 @@ class TestAlphaZeroLargeNetworkTypes:
         loss = agent.train_on_example(x, target_policy, target_value=0.0)
         assert math.isfinite(loss) and loss >= 0.0
 
-    def test_train_on_example_ternary_large_finite_loss(self):
+    def test_train_on_example_float32_finite_loss(self):
         import math
-        agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="ternary_large")
+        agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="float32")
         board = Board.create(3)
         from tictactoe.agents.reinforcement_learning.shared.neural_net import encode_board_flat
         from tictactoe.core.types import Player
@@ -309,11 +313,12 @@ class TestTrainOnBatch:
         assert math.isfinite(loss) and loss >= 0.0
 
     def test_batch_updates_policy_bias(self):
+        import torch
         agent = AlphaZeroAgent(n=3, num_simulations=5, network_type="quantized")
         examples = self._make_examples(agent)
-        bp_before = agent._net._bp.copy()
+        bp_before = agent._net.bp.detach().clone()
         agent.train_on_batch(examples, lr=0.1)
-        assert not np.allclose(agent._net._bp, bp_before)
+        assert not torch.allclose(agent._net.bp, bp_before)
 
 
 # ---------------------------------------------------------------------------

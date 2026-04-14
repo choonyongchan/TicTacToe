@@ -10,8 +10,6 @@ Optimisations implemented:
   the next call, preserving visit statistics.
 - Mini-batch SGD via ``train_on_batch()`` for efficient replay training.
 
-Requires numpy.
-
 Dependency chain position: types → state → board → game → agents → benchmark.
 """
 from __future__ import annotations
@@ -20,7 +18,7 @@ import math
 import random
 import time
 
-import numpy as np
+import torch
 
 from tictactoe.agents.base_agent import BaseAgent
 from tictactoe.agents._search_budget import SearchBudget
@@ -138,18 +136,13 @@ class AlphaZeroAgent(BaseAgent):
             match_config: Budget configuration (time, node, or depth controlled).
             net: Pre-built network to inject (skips network_type selection).
             network_type: Architecture selector. One of:
-                ``"quantized"``, ``"ternary"``, ``"quantized_large"``,
-                ``"ternary_large"``, ``"ternary_bitnet"``,
-                ``"ternary_bitnet_large"``, ``"default"`` / ``"float32"``.
+                ``"quantized"`` (default), ``"float32"`` / ``"default"``,
+                ``"ternary_bitnet_large"`` / ``"bitnet"``.
         """
         from tictactoe.agents.reinforcement_learning.shared.neural_net import (
-            QuantizedPolicyValueNetwork,
-            TernaryPolicyValueNetwork,
             PolicyValueNetwork,
-            LargeQuantizedPolicyValueNetwork,
-            LargeTernaryPolicyValueNetwork,
-            TernaryBitNetPolicyValueNetwork,
-            LargeTernaryBitNetPolicyValueNetwork,
+            QuantizedPolicyValueNetwork,
+            BitNetPolicyValueNetwork,
         )
         from tictactoe.config import get_config as _cfg, ConfigError as _CE
         try:
@@ -180,32 +173,18 @@ class AlphaZeroAgent(BaseAgent):
         elif network_type == "quantized":
             self._net = QuantizedPolicyValueNetwork(n, k=self.k)
             self._network_type = "quantized"
-        elif network_type == "ternary":
-            self._net = TernaryPolicyValueNetwork(n, k=self.k)
-            self._network_type = "ternary"
-        elif network_type == "quantized_large":
-            self._net = LargeQuantizedPolicyValueNetwork(n, k=self.k)
-            self._network_type = "quantized_large"
-        elif network_type == "ternary_large":
-            self._net = LargeTernaryPolicyValueNetwork(n, k=self.k)
-            self._network_type = "ternary_large"
-        elif network_type == "ternary_bitnet":
-            self._net = TernaryBitNetPolicyValueNetwork(n, k=self.k)
-            self._network_type = "ternary_bitnet"
-        elif network_type == "ternary_bitnet_large":
-            self._net = LargeTernaryBitNetPolicyValueNetwork(n, k=self.k)
+        elif network_type in ("ternary_bitnet_large", "bitnet"):
+            self._net = BitNetPolicyValueNetwork(n, k=self.k)
             self._network_type = "ternary_bitnet_large"
         else:
             raise ValueError(
                 f"Unknown network_type: {network_type!r}. "
-                "Valid options: 'quantized', 'ternary', 'quantized_large', "
-                "'ternary_large', 'ternary_bitnet', 'ternary_bitnet_large', "
-                "'default', 'float32'."
+                "Valid options: 'quantized', 'float32'/'default', "
+                "'ternary_bitnet_large'/'bitnet'."
             )
 
         self._trained = net is not None
         self._rng = random.Random(seed)
-        self._np_rng = np.random.default_rng(seed)
 
     # ------------------------------------------------------------------
     # BaseAgent interface
@@ -250,9 +229,9 @@ class AlphaZeroAgent(BaseAgent):
 
         # Apply Dirichlet noise to root priors
         if root.children:
-            priors = np.array([c.prior for c in root.children], dtype=np.float32)
-            noisy = self._add_dirichlet_noise(priors, self._np_rng)
-            for child, new_prior in zip(root.children, noisy):
+            priors = torch.tensor([c.prior for c in root.children], dtype=torch.float32)
+            noisy = self._add_dirichlet_noise(priors)
+            for child, new_prior in zip(root.children, noisy.tolist()):
                 child.prior = float(new_prior)
 
         budget = SearchBudget(self.match_config, time.perf_counter_ns())
@@ -272,7 +251,8 @@ class AlphaZeroAgent(BaseAgent):
             if not node.is_terminal():
                 self._expand(node)
                 x = encode_board_flat(node.state.board, node.state.current_player, self.n)
-                _, value = self._net.forward(x)
+                with torch.no_grad():
+                    _, value = self._net.forward(x)
             else:
                 value = self._terminal_value(node.state)
 
@@ -290,11 +270,11 @@ class AlphaZeroAgent(BaseAgent):
             if temp < 1e-3:
                 best_child = max(root.children, key=lambda c: c.visits)
             else:
-                visits = np.array([c.visits for c in root.children], dtype=np.float32)
+                visits = torch.tensor([c.visits for c in root.children], dtype=torch.float32)
                 visits_t = visits ** (1.0 / temp)
                 total = visits_t.sum()
                 probs = visits_t / total if total > 0 else visits_t
-                idx = int(self._np_rng.choice(len(root.children), p=probs))
+                idx = int(torch.multinomial(probs, 1).item())
                 best_child = root.children[idx]
             move = best_child.move
 
@@ -330,27 +310,30 @@ class AlphaZeroAgent(BaseAgent):
             return
 
         x = encode_board_flat(node.state.board, node.state.current_player, self.n)
-        policy_logits, _ = self._net.forward(x)
-        policy = softmax(policy_logits)
+        with torch.no_grad():
+            policy_logits, _ = self._net.forward(x)
+            policy = softmax(policy_logits)
 
         n = self.n
-        masked = np.zeros(n * n, dtype=np.float32)
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import DEVICE
+        masked = torch.zeros(n * n, dtype=torch.float32, device=DEVICE)
         for r, c in candidates:
             masked[r * n + c] = policy[r * n + c]
         total = masked.sum()
         if total > 0:
-            masked /= total
+            masked = masked / total
         else:
             for r, c in candidates:
                 masked[r * n + c] = 1.0 / len(candidates)
 
+        priors_list = masked.tolist()
         for move in candidates:
             r, c = move
             child_state = node.state.apply_move(move)
             child_state.result = Board.is_terminal(
                 child_state.board, child_state.n, child_state.k, move
             )
-            prior = float(masked[r * n + c])
+            prior = priors_list[r * n + c]
             child = PUCTNode(child_state, parent=node, move=move, prior=prior)
             node.children.append(child)
 
@@ -379,11 +362,10 @@ class AlphaZeroAgent(BaseAgent):
 
     def _add_dirichlet_noise(
         self,
-        priors: np.ndarray,
-        rng: np.random.Generator,
+        priors: torch.Tensor,
         epsilon: float = 0.25,
         alpha: float = 0.3,
-    ) -> np.ndarray:
+    ) -> torch.Tensor:
         """Mix network priors with Dirichlet noise at the root node.
 
         Standard AlphaZero exploration technique. Adds noise drawn from a
@@ -392,7 +374,6 @@ class AlphaZeroAgent(BaseAgent):
 
         Args:
             priors: Network policy distribution over legal moves (length m).
-            rng: Numpy random generator (seeded via self._np_rng).
             epsilon: Noise mixture weight (0 = no noise, 1 = pure noise).
                 AlphaZero uses 0.25.
             alpha: Dirichlet concentration parameter. Lower values produce
@@ -401,9 +382,11 @@ class AlphaZeroAgent(BaseAgent):
         Returns:
             Mixed prior distribution of the same length as ``priors``.
         """
-        if len(priors) == 0:
+        m = len(priors)
+        if m == 0:
             return priors
-        noise = rng.dirichlet(alpha=np.full(len(priors), alpha))
+        concentration = torch.full((m,), alpha, dtype=torch.float32)
+        noise = torch.distributions.Dirichlet(concentration).sample()
         return (1.0 - epsilon) * priors + epsilon * noise
 
     def _effective_temperature(self, move_number: int) -> float:
@@ -464,53 +447,39 @@ class AlphaZeroAgent(BaseAgent):
         target_policy,
         target_value: float,
     ) -> float:
-        """Perform one supervised update step.
+        """Perform one supervised update step via the network's train_batch.
 
-        Computes policy and value losses, derives output-head gradients, then
-        delegates the weight update to the network's own ``backward()`` method.
-        This keeps ``AlphaZeroAgent`` decoupled from the network's internal
-        storage format (float32, int8-quantized, or ternary).
+        Delegates to the network's ``train_batch()`` method which computes the
+        combined AlphaZero loss (cross-entropy + MSE) and updates weights via
+        autograd.
 
         Args:
-            state_enc: Flat encoded state (numpy array of length 3*n*n).
+            state_enc: Flat encoded state (tensor or array of length 3*n*n).
             target_policy: Target policy distribution (sums to 1, length n*n).
             target_value: Target value in [-1, 1].
 
         Returns:
             Combined loss (policy cross-entropy + value MSE).
         """
-        from tictactoe.agents.reinforcement_learning.shared.neural_net import (
-            softmax, cross_entropy_loss, mse_loss,
-        )
-        policy_logits, value = self._net.forward(state_enc)
-        p_loss = cross_entropy_loss(policy_logits, target_policy)
-        v_loss = mse_loss(np.array([value]), np.array([target_value]))
-        total_loss = p_loss + v_loss
-
-        dp = softmax(policy_logits) - target_policy
-        dv = np.array([2.0 * (value - target_value)])
-        self._net.backward(state_enc, dp, dv, self.lr)
-
-        return float(total_loss)
+        tv = torch.tensor([target_value], dtype=torch.float32)
+        return self._net.train_batch([(state_enc, target_policy, tv)], lr=self.lr)
 
     def train_on_batch(
         self,
-        examples: list[tuple[np.ndarray, np.ndarray, float]],
+        examples: list[tuple],
         lr: float | None = None,
     ) -> float:
         """Train on a mini-batch of (state, policy, value) examples.
 
-        Computes policy and value losses for each example, derives output-head
-        gradients, then delegates one batched weight update to the network's
-        ``backward_batch()`` method. Mini-batch training is more sample-efficient
-        than single-example updates because gradients are averaged across the
-        batch before the weight update, reducing gradient noise.
+        Delegates to the network's ``train_batch()`` method which computes the
+        combined AlphaZero loss and performs a single optimizer step over the
+        full mini-batch.
 
         Args:
             examples: List of (state_enc, target_policy, target_value) tuples.
-                state_enc: Flat encoded state (numpy array of length 3*n*n).
+                state_enc: Flat encoded state (tensor or array of length 3*n*n).
                 target_policy: Target distribution (sums to 1, length n*n).
-                target_value: Target value in [-1, 1].
+                target_value: Target value in [-1, 1] (scalar).
             lr: Learning rate. Defaults to ``self.lr``.
 
         Returns:
@@ -522,24 +491,13 @@ class AlphaZeroAgent(BaseAgent):
         """
         if not examples:
             raise ValueError("examples must be non-empty.")
-        from tictactoe.agents.reinforcement_learning.shared.neural_net import (
-            softmax, cross_entropy_loss, mse_loss,
-        )
         learning_rate = lr if lr is not None else self.lr
-        batch = []
-        total_loss = 0.0
-        for state_enc, target_policy, target_value in examples:
-            policy_logits, value = self._net.forward(state_enc)
-            p_loss = cross_entropy_loss(policy_logits, target_policy)
-            v_loss = mse_loss(np.array([value]), np.array([target_value]))
-            total_loss += p_loss + v_loss
-
-            dp = softmax(policy_logits) - target_policy
-            dv = np.array([2.0 * (value - target_value)])
-            batch.append((state_enc, dp, dv))
-
-        self._net.backward_batch(batch, learning_rate)
-        return float(total_loss) / len(examples)
+        # Normalise target_value to a 1-D tensor for each example
+        normalised = [
+            (s, p, torch.tensor([float(v)], dtype=torch.float32))
+            for s, p, v in examples
+        ]
+        return self._net.train_batch(normalised, lr=learning_rate)
 
     @staticmethod
     def _generate_symmetries(
@@ -557,47 +515,53 @@ class AlphaZeroAgent(BaseAgent):
         Args:
             board: Current board (n×n Cell grid).
             n: Board dimension.
-            policy: Flat policy array of length n*n.
+            policy: Flat policy tensor or array of length n*n.
             value: Scalar value target.
 
         Returns:
             List of 8 (encoded_state, policy_variant, value) tuples.
         """
         cell_to_int = {Cell.EMPTY: 0, Cell.X: 1, Cell.O: 2}
-        board_arr = np.array([[cell_to_int[board[r][c]] for c in range(n)] for r in range(n)])
-        policy_2d = np.asarray(policy).reshape(n, n)
+        board_arr = torch.tensor(
+            [[cell_to_int[board[r][c]] for c in range(n)] for r in range(n)],
+            dtype=torch.float32,
+        )
+        if isinstance(policy, torch.Tensor):
+            policy_2d = policy.reshape(n, n).float()
+        else:
+            policy_2d = torch.tensor(policy, dtype=torch.float32).reshape(n, n)
 
         variants = []
         for rot in range(4):
-            b_rot = np.rot90(board_arr, rot)
-            p_rot = np.rot90(policy_2d, rot)
+            b_rot = torch.rot90(board_arr, rot, dims=(0, 1))
+            p_rot = torch.rot90(policy_2d, rot, dims=(0, 1))
             b_enc = AlphaZeroAgent._board_arr_to_flat(b_rot, n)
             variants.append((b_enc, p_rot.flatten(), value))
-            b_flip = np.fliplr(b_rot)
-            p_flip = np.fliplr(p_rot)
+            b_flip = torch.flip(b_rot, dims=[1])
+            p_flip = torch.flip(p_rot, dims=[1])
             b_enc_f = AlphaZeroAgent._board_arr_to_flat(b_flip, n)
             variants.append((b_enc_f, p_flip.flatten(), value))
 
         return variants
 
     @staticmethod
-    def _board_arr_to_flat(board_arr: np.ndarray, n: int) -> np.ndarray:
-        """Convert an (n, n) int array to a 3-channel flat encoding.
+    def _board_arr_to_flat(board_arr: torch.Tensor, n: int) -> torch.Tensor:
+        """Convert an (n, n) float tensor to a 3-channel flat encoding.
 
         Channel 0: own pieces (value==1), Channel 1: opponent pieces (value==2),
         Channel 2: all ones (constant plane). Matches ``encode_board_flat`` layout.
 
         Args:
-            board_arr: Integer array of shape (n, n) with values in {0, 1, 2}.
+            board_arr: Float tensor of shape (n, n) with values in {0, 1, 2}.
             n: Board dimension (used to build the constant plane).
 
         Returns:
-            Flat float32 array of length 3*n*n.
+            Flat float32 tensor of length 3*n*n.
         """
-        own = (board_arr == 1).astype(np.float32)
-        opp = (board_arr == 2).astype(np.float32)
-        const = np.ones((n, n), dtype=np.float32)
-        return np.stack([own, opp, const]).flatten()
+        own = (board_arr == 1).float()
+        opp = (board_arr == 2).float()
+        const = torch.ones(n, n, dtype=torch.float32)
+        return torch.stack([own, opp, const]).flatten()
 
     # ------------------------------------------------------------------
     # Persistence
@@ -608,5 +572,5 @@ class AlphaZeroAgent(BaseAgent):
         self._net.save(path)
 
     def load(self, path: str) -> None:
-        """Load network weights from path.npz."""
-        self._net.load(path + '.npz')
+        """Load network weights from path.pt."""
+        self._net.load(path)
