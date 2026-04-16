@@ -116,7 +116,7 @@ class MTDfEnhanced(BaseAgent):
         self._tt.clear()
         self._killers.clear()
         self._history.clear()
-        self._last_score = 0.0
+        self._last_score = evaluate_position(state, state.current_player)
 
         candidates = Board.get_candidate_moves(state, radius=2)
         best_move: Move | None = candidates[0] if candidates else None
@@ -184,16 +184,23 @@ class MTDfEnhanced(BaseAgent):
             if budget.exhausted(counters[0], 0):
                 break
 
-            # Null-window probe
-            probe_alpha = f - 1
-            probe_beta = f
+            # Compute probe_beta mirroring vanilla's clamped logic:
+            # after a fail-high (lower==f), probe strictly above lower to
+            # allow a fail-low on the next probe and converge.
+            probe_beta = f + 1 if f > lower else f
+            if probe_beta <= lower:
+                probe_beta = lower + 1
+            if probe_beta > upper:
+                probe_beta = upper
+            probe_alpha = probe_beta - 1
 
             probe_score, _ = self._nw_search(
                 state, depth, probe_alpha, probe_beta, budget, tt,
-                killers, history, counters, board_hash, 0, True,
+                killers, history, counters, board_hash, 0,
             )
 
-            if probe_score < f:
+            # Compare against probe_beta (not the old f) for fail-low/high.
+            if probe_score < probe_beta:
                 upper = probe_score
             else:
                 lower = probe_score
@@ -225,7 +232,6 @@ class MTDfEnhanced(BaseAgent):
         counters: list,
         board_hash: int,
         depth_from_root: int,
-        is_root: bool = False,
     ) -> tuple[Score, Move | None]:
         """Null-window negamax search used by MTD(f) probes.
 
@@ -236,8 +242,8 @@ class MTDfEnhanced(BaseAgent):
         Args:
             state: Current state.
             depth: Remaining depth.
-            alpha: Lower bound (typically f-1 in MTD(f) context).
-            beta: Upper bound (typically f in MTD(f) context).
+            alpha: Lower bound (typically probe_alpha in MTD(f) context).
+            beta: Upper bound (typically probe_beta in MTD(f) context).
             budget: Budget controller.
             tt: Shared transposition table.
             killers: Killer move table.
@@ -245,7 +251,6 @@ class MTDfEnhanced(BaseAgent):
             counters: Shared [nodes, max_depth_reached, prunings].
             board_hash: Incremental Zobrist hash.
             depth_from_root: Plies from root.
-            is_root: True only at the root node.
 
         Returns:
             (best_score, best_move) from current_player's perspective.
@@ -256,7 +261,7 @@ class MTDfEnhanced(BaseAgent):
         original_alpha = alpha
 
         tt_score = tt.lookup(board_hash, depth, alpha, beta)
-        if tt_score is not None and not is_root:
+        if tt_score is not None:
             return tt_score, tt.get_best_move(board_hash)
 
         if state.result != Result.IN_PROGRESS:
@@ -294,7 +299,7 @@ class MTDfEnhanced(BaseAgent):
 
             child_score, _ = self._nw_search(
                 child, depth - 1, -beta, -alpha, budget, tt,
-                killers, history, counters, child_hash, depth_from_root + 1, False,
+                killers, history, counters, child_hash, depth_from_root + 1,
             )
             score = -child_score
 

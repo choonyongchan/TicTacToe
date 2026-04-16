@@ -27,14 +27,16 @@ def test_get_name_and_tier():
 
 
 def test_save_load_roundtrip(tmp_path):
-    import numpy as np
+    import torch
     agent = PPOSelfPlayAgent(n=3)
     path = str(tmp_path / "ppo_model")
     agent.save(path)
     agent2 = PPOSelfPlayAgent(n=3)
     agent2.load(path)
-    for w1, w2 in zip(agent._net.get_weights(), agent2._net.get_weights()):
-        assert np.allclose(w1, w2)
+    sd1 = agent._net.state_dict()
+    sd2 = agent2._net.state_dict()
+    for k in sd1:
+        assert torch.allclose(sd1[k].float(), sd2[k].float()), f"Mismatch at key {k!r}"
 
 
 def test_policy_is_valid_distribution():

@@ -110,14 +110,14 @@ class TestPolicyValueNetwork:
     def test_forward_value_in_range(self):
         net, x, n = self._make_net()
         _, value = net.forward(x)
-        assert -1.0 <= float(value) <= 1.0
+        assert -1.0 <= float(value.detach()) <= 1.0
 
     def test_policy_sums_to_1_via_softmax(self):
         from tictactoe.agents.reinforcement_learning.shared.neural_net import softmax
         net, x, n = self._make_net()
         policy_logits, _ = net.forward(x)
         policy = softmax(policy_logits)
-        assert abs(float(policy.sum()) - 1.0) < 1e-5
+        assert abs(float(policy.sum().detach()) - 1.0) < 1e-5
 
     def test_architecture_constants(self):
         from tictactoe.agents.reinforcement_learning.shared.neural_net import PolicyValueNetwork
@@ -225,14 +225,14 @@ class TestQuantizedPolicyValueNetwork:
     def test_forward_value_in_range(self):
         net, x, n = self._make_net()
         _, value = net.forward(x)
-        assert -1.0 <= float(value) <= 1.0
+        assert -1.0 <= float(value.detach()) <= 1.0
 
     def test_policy_sums_to_1_via_softmax(self):
         from tictactoe.agents.reinforcement_learning.shared.neural_net import softmax
         net, x, n = self._make_net()
         policy_logits, _ = net.forward(x)
         policy = softmax(policy_logits)
-        assert abs(float(policy.sum()) - 1.0) < 1e-5
+        assert abs(float(policy.sum().detach()) - 1.0) < 1e-5
 
     def test_architecture_constants(self):
         from tictactoe.agents.reinforcement_learning.shared.neural_net import (
@@ -359,14 +359,14 @@ class TestBitNetPolicyValueNetwork:
     def test_forward_value_in_range(self):
         net, x, n = self._make_net()
         _, value = net.forward(x)
-        assert -1.0 <= float(value) <= 1.0
+        assert -1.0 <= float(value.detach()) <= 1.0
 
     def test_policy_sums_to_1_via_softmax(self):
         from tictactoe.agents.reinforcement_learning.shared.neural_net import softmax
         net, x, n = self._make_net()
         policy_logits, _ = net.forward(x)
         policy = softmax(policy_logits)
-        assert abs(float(policy.sum()) - 1.0) < 1e-5
+        assert abs(float(policy.sum().detach()) - 1.0) < 1e-5
 
     def test_architecture_constants(self):
         from tictactoe.agents.reinforcement_learning.shared.neural_net import (
@@ -439,3 +439,244 @@ class TestBitNetPolicyValueNetwork:
         target_v = torch.tensor([0.5])
         net.train_step(x, target_p, target_v)
         assert not torch.allclose(net._embed.weight, embed_w_before)
+
+
+# ---------------------------------------------------------------------------
+# train_batch — all three network variants
+# ---------------------------------------------------------------------------
+
+
+def _make_batch_examples(net_class, n: int = 3, count: int = 4):
+    """Helper: generate ``count`` (x, policy, value) training tuples."""
+    from tictactoe.agents.reinforcement_learning.shared.neural_net import encode_board_flat
+    from tictactoe.core.board import Board
+    from tictactoe.core.types import Player
+    board = Board.create(n)
+    x = encode_board_flat(board, Player.X, n)
+    tp = torch.ones(n * n, dtype=torch.float32) / (n * n)
+    return [(x, tp, torch.tensor([float(i % 2) * 2 - 1])) for i in range(count)]
+
+
+class TestNetworkTrainBatch:
+    """train_batch must return a finite mean loss and update weights for all variants."""
+
+    def test_policy_value_network_train_batch_returns_finite_loss(self):
+        import math
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import PolicyValueNetwork
+        net = PolicyValueNetwork(3)
+        examples = _make_batch_examples(PolicyValueNetwork)
+        loss = net.train_batch(examples)
+        assert isinstance(loss, float)
+        assert math.isfinite(loss) and loss >= 0.0
+
+    def test_quantized_network_train_batch_returns_finite_loss(self):
+        import math
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import QuantizedPolicyValueNetwork
+        net = QuantizedPolicyValueNetwork(3)
+        examples = _make_batch_examples(QuantizedPolicyValueNetwork)
+        loss = net.train_batch(examples)
+        assert isinstance(loss, float)
+        assert math.isfinite(loss) and loss >= 0.0
+
+    def test_bitnet_network_train_batch_returns_finite_loss(self):
+        import math
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import BitNetPolicyValueNetwork
+        net = BitNetPolicyValueNetwork(3)
+        examples = _make_batch_examples(BitNetPolicyValueNetwork)
+        loss = net.train_batch(examples)
+        assert isinstance(loss, float)
+        assert math.isfinite(loss) and loss >= 0.0
+
+    def test_policy_value_network_train_batch_empty_raises(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import PolicyValueNetwork
+        net = PolicyValueNetwork(3)
+        with pytest.raises(ValueError):
+            net.train_batch([])
+
+    def test_quantized_network_train_batch_empty_raises(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import QuantizedPolicyValueNetwork
+        net = QuantizedPolicyValueNetwork(3)
+        with pytest.raises(ValueError):
+            net.train_batch([])
+
+    def test_bitnet_network_train_batch_empty_raises(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import BitNetPolicyValueNetwork
+        net = BitNetPolicyValueNetwork(3)
+        with pytest.raises(ValueError):
+            net.train_batch([])
+
+    def test_policy_value_network_train_batch_updates_weights(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import PolicyValueNetwork
+        net = PolicyValueNetwork(3)
+        fc_p_w_before = net.fc_p.weight.detach().clone()
+        examples = _make_batch_examples(PolicyValueNetwork)
+        net.train_batch(examples, lr=0.1)
+        assert not torch.allclose(net.fc_p.weight, fc_p_w_before)
+
+    def test_bitnet_train_batch_updates_embed_weights(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import BitNetPolicyValueNetwork
+        net = BitNetPolicyValueNetwork(3)
+        embed_w_before = net._embed.weight.detach().clone()
+        examples = _make_batch_examples(BitNetPolicyValueNetwork)
+        net.train_batch(examples, lr=0.1)
+        assert not torch.allclose(net._embed.weight, embed_w_before)
+
+
+# ---------------------------------------------------------------------------
+# Multi-board-size — n=5 for all three variants
+# ---------------------------------------------------------------------------
+
+
+class TestMultiBoardSize:
+    """Networks must produce correctly-shaped outputs for n=5 boards."""
+
+    def _encode(self, n: int):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import encode_board_flat
+        from tictactoe.core.board import Board
+        from tictactoe.core.types import Player
+        return encode_board_flat(Board.create(n), Player.X, n)
+
+    def test_policy_value_network_n5_output_shapes(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import PolicyValueNetwork
+        net = PolicyValueNetwork(5)
+        x = self._encode(5)
+        policy, value = net.forward(x)
+        assert policy.shape == (25,)
+        assert value.shape == torch.Size([1]) or value.numel() == 1
+
+    def test_quantized_network_n5_output_shapes(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import QuantizedPolicyValueNetwork
+        net = QuantizedPolicyValueNetwork(5)
+        x = self._encode(5)
+        policy, value = net.forward(x)
+        assert policy.shape == (25,)
+        assert value.numel() == 1
+
+    def test_bitnet_network_n5_output_shapes(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import BitNetPolicyValueNetwork
+        net = BitNetPolicyValueNetwork(5)
+        x = self._encode(5)
+        policy, value = net.forward(x)
+        assert policy.shape == (25,)
+        assert value.numel() == 1
+
+    def test_policy_value_network_n5_value_in_range(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import PolicyValueNetwork
+        net = PolicyValueNetwork(5)
+        x = self._encode(5)
+        _, value = net.forward(x)
+        assert -1.0 <= float(value.detach()) <= 1.0
+
+    def test_bitnet_network_n5_value_in_range(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import BitNetPolicyValueNetwork
+        net = BitNetPolicyValueNetwork(5)
+        x = self._encode(5)
+        _, value = net.forward(x)
+        assert -1.0 <= float(value.detach()) <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# Forward determinism — same input → identical output
+# ---------------------------------------------------------------------------
+
+
+class TestForwardDeterminism:
+    """Calling forward twice with the same input must produce identical results."""
+
+    def _encode(self, n: int = 3):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import encode_board_flat
+        from tictactoe.core.board import Board
+        from tictactoe.core.types import Player
+        return encode_board_flat(Board.create(n), Player.X, n)
+
+    def test_policy_value_network_forward_is_deterministic(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import PolicyValueNetwork
+        net = PolicyValueNetwork(3)
+        net.eval()
+        x = self._encode()
+        with torch.no_grad():
+            p1, v1 = net.forward(x)
+            p2, v2 = net.forward(x)
+        assert torch.allclose(p1, p2)
+        assert torch.allclose(v1, v2)
+
+    def test_quantized_forward_is_deterministic(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import QuantizedPolicyValueNetwork
+        net = QuantizedPolicyValueNetwork(3)
+        x = self._encode()
+        p1, v1 = net.forward(x)
+        p2, v2 = net.forward(x)
+        assert torch.allclose(p1, p2)
+        assert torch.allclose(v1, v2)
+
+    def test_bitnet_forward_is_deterministic(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import BitNetPolicyValueNetwork
+        net = BitNetPolicyValueNetwork(3)
+        net.eval()
+        x = self._encode()
+        with torch.no_grad():
+            p1, v1 = net.forward(x)
+            p2, v2 = net.forward(x)
+        assert torch.allclose(p1, p2)
+        assert torch.allclose(v1, v2)
+
+
+# ---------------------------------------------------------------------------
+# Integration — all three variants accept the same encoded input
+# ---------------------------------------------------------------------------
+
+
+class TestNetworkIntegration:
+    """All three networks share the same public API and accept encode_board_flat output."""
+
+    def test_all_three_networks_accept_same_encoded_input(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import (
+            PolicyValueNetwork, QuantizedPolicyValueNetwork, BitNetPolicyValueNetwork,
+            encode_board_flat,
+        )
+        from tictactoe.core.board import Board
+        from tictactoe.core.types import Player
+        x = encode_board_flat(Board.create(3), Player.X, 3)
+        for NetClass in (PolicyValueNetwork, QuantizedPolicyValueNetwork, BitNetPolicyValueNetwork):
+            net = NetClass(3)
+            policy, value = net.forward(x)
+            assert policy.shape == (9,), f"{NetClass.__name__} policy shape wrong"
+            assert value.numel() == 1, f"{NetClass.__name__} value shape wrong"
+
+    def test_all_three_networks_copy_produces_independent_clone(self):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import (
+            PolicyValueNetwork, QuantizedPolicyValueNetwork, BitNetPolicyValueNetwork,
+            encode_board_flat,
+        )
+        from tictactoe.core.board import Board
+        from tictactoe.core.types import Player
+        x = encode_board_flat(Board.create(3), Player.X, 3)
+        for NetClass in (PolicyValueNetwork, QuantizedPolicyValueNetwork, BitNetPolicyValueNetwork):
+            net = NetClass(3)
+            clone = net.copy()
+            assert isinstance(clone, NetClass), f"{NetClass.__name__}.copy() wrong type"
+            p_orig, v_orig = net.forward(x)
+            p_clone, v_clone = clone.forward(x)
+            assert torch.allclose(p_orig.detach(), p_clone.detach(), atol=1e-5), \
+                f"{NetClass.__name__} clone diverged on forward pass"
+
+    def test_all_three_networks_save_load_roundtrip(self, tmp_path):
+        from tictactoe.agents.reinforcement_learning.shared.neural_net import (
+            PolicyValueNetwork, QuantizedPolicyValueNetwork, BitNetPolicyValueNetwork,
+            encode_board_flat,
+        )
+        from tictactoe.core.board import Board
+        from tictactoe.core.types import Player
+        x = encode_board_flat(Board.create(3), Player.X, 3)
+        for NetClass in (PolicyValueNetwork, QuantizedPolicyValueNetwork, BitNetPolicyValueNetwork):
+            net = NetClass(3)
+            path = str(tmp_path / f"{NetClass.__name__}_test")
+            net.save(path)
+            net2 = NetClass(3)
+            net2.load(path + ".pt")
+            p1, v1 = net.forward(x)
+            p2, v2 = net2.forward(x)
+            assert torch.allclose(p1.detach(), p2.detach(), atol=1e-5), \
+                f"{NetClass.__name__} save/load policy mismatch"
+            assert torch.allclose(v1.detach(), v2.detach(), atol=1e-5), \
+                f"{NetClass.__name__} save/load value mismatch"

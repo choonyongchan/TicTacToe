@@ -195,10 +195,10 @@ def test_generate_symmetries_produces_8_variants_as_staticmethod():
 
 def test_board_arr_to_flat_shape():
     """_board_arr_to_flat is now a @staticmethod — verify output shape."""
-    import numpy as np
-    board_arr = np.zeros((3, 3), dtype=int)
+    import torch
+    board_arr = torch.zeros(3, 3)
     flat = AlphaZeroAgent._board_arr_to_flat(board_arr, 3)
-    assert flat.shape == (3 * 3 * 3,)  # 3 channels × 9 cells
+    assert flat.shape == torch.Size([3 * 3 * 3])  # 3 channels × 9 cells
 
 
 # ---------------------------------------------------------------------------
@@ -331,20 +331,20 @@ class TestAlphaZeroOptimisations:
 
     def test_dirichlet_noise_changes_priors(self):
         """_add_dirichlet_noise must produce a different distribution."""
+        import torch
         agent = AlphaZeroAgent(n=3, num_simulations=5)
-        rng = np.random.default_rng(0)
-        priors = np.ones(9, dtype=np.float32) / 9
-        noisy = agent._add_dirichlet_noise(priors, rng)
+        priors = torch.ones(9, dtype=torch.float32) / 9
+        noisy = agent._add_dirichlet_noise(priors)
         assert noisy.shape == priors.shape
-        assert abs(noisy.sum() - 1.0) < 1e-5
-        assert not np.allclose(noisy, priors)
+        assert abs(float(noisy.sum().detach()) - 1.0) < 1e-5
+        assert not torch.allclose(noisy, priors)
 
     def test_dirichlet_noise_empty_priors(self):
-        """Empty prior array must be returned unchanged."""
+        """Empty prior tensor must be returned unchanged."""
+        import torch
         agent = AlphaZeroAgent(n=3, num_simulations=5)
-        rng = np.random.default_rng(0)
-        priors = np.array([], dtype=np.float32)
-        result = agent._add_dirichlet_noise(priors, rng)
+        priors = torch.tensor([], dtype=torch.float32)
+        result = agent._add_dirichlet_noise(priors)
         assert len(result) == 0
 
     def test_effective_temperature_early_moves(self):

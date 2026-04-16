@@ -49,12 +49,13 @@ def test_get_name_and_tier():
 
 
 def test_save_load_roundtrip(tmp_path):
-    import numpy as np
+    import torch
     agent = DQNAgent(n=3)
     path = str(tmp_path / "dqn_model")
     agent.save(path)
     agent2 = DQNAgent(n=3)
     agent2.load(path)
-    # Both networks should have same weights
-    for w1, w2 in zip(agent._online.get_weights(), agent2._online.get_weights()):
-        assert np.allclose(w1, w2)
+    sd1 = agent._online.state_dict()
+    sd2 = agent2._online.state_dict()
+    for k in sd1:
+        assert torch.allclose(sd1[k].float(), sd2[k].float()), f"Mismatch at key {k!r}"
