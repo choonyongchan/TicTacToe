@@ -202,12 +202,13 @@ class TestActValidMove:
         assert Board.is_empty(state.board, row, col)
 
     def test_only_one_cell_left(self):
-        # Fill 8 cells, leaving only (2, 2).
+        # Fill 8 cells leaving only (2,2) empty, with no winner at any step.
         state = state_with_moves([
-            (0, 0), (0, 1),
-            (1, 0), (0, 2),
-            (1, 2), (1, 1),
+            (1, 0), (0, 0),
+            (0, 1), (1, 1),
+            (0, 2), (1, 2),
             (2, 0), (2, 1),
         ])
+        assert not state.is_terminal()
         agent = MinimaxAgent(Player.X)
         assert agent.act(state) == (2, 2)
