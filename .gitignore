@@ -6,8 +6,10 @@ README.md
 # Virtual environment
 .venv/
 
-src/
-main.py
+src/agents
+src/tests/test_agents.py
+src/tests/test_minimax_agent.py
+src/tests/test_minimax_alphabeta_agent.py
 
 # Python cache
 __pycache__/
