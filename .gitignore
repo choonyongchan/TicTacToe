@@ -6,9 +6,6 @@ README.md
 # Virtual environment
 .venv/
 
-src/agents/minimax_alphabeta_agent.py
-src/tests/test_minimax_alphabeta_agent.py
-
 # Python cache
 __pycache__/
 *.py[cod]
