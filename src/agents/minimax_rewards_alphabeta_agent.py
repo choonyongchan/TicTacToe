@@ -1,7 +1,7 @@
 from src.agents.base_agent import BaseAgent
 from src.core.board import Board
 from src.core.state import State
-from src.core.types import Player
+from src.core.types import INFINITY, NEGATIVE_INFINITY, Player
 
 
 class MinimaxRewardsAlphaBetaAgent(BaseAgent):
@@ -12,12 +12,12 @@ class MinimaxRewardsAlphaBetaAgent(BaseAgent):
         self._epsilon = 1.0 / (max_depth + 1)
 
     def act(self, state: State) -> tuple[int, int]:
-        best_score = float("-inf")
+        best_score = NEGATIVE_INFINITY
         best_move: tuple[int, int] | None = None
-        alpha = float("-inf")
+        alpha = NEGATIVE_INFINITY
         for row, col in Board.get_empty_cells(state.board):
             state.apply(row, col)
-            score = self._minimax(state, alpha, float("inf"))
+            score = self._minimax(state, alpha, INFINITY)
             state.undo()
             if score > best_score:
                 best_score = score
@@ -43,7 +43,7 @@ class MinimaxRewardsAlphaBetaAgent(BaseAgent):
         return self._minimize(state, alpha, beta)
 
     def _maximize(self, state: State, alpha: float, beta: float) -> float:
-        best = float("-inf")
+        best = NEGATIVE_INFINITY
         for row, col in Board.get_empty_cells(state.board):
             state.apply(row, col)
             score = self._minimax(state, alpha, beta)
@@ -57,7 +57,7 @@ class MinimaxRewardsAlphaBetaAgent(BaseAgent):
         return best
 
     def _minimize(self, state: State, alpha: float, beta: float) -> float:
-        best = float("inf")
+        best = INFINITY
         for row, col in Board.get_empty_cells(state.board):
             state.apply(row, col)
             score = self._minimax(state, alpha, beta)
