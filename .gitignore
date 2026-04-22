@@ -4,7 +4,10 @@ CLAUDE.md
 README.md
 
 # Virtual environment
-.env/
+.venv/
+
+src/
+main.py
 
 # Python cache
 __pycache__/
@@ -22,3 +25,6 @@ Thumbs.db
 *.swo
 .idea/
 .vscode/
+
+back/
+todo.md

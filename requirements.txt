@@ -1,3 +1,0 @@
-pytest>=7.0
-matplotlib>=3.5; python_version>="3.8"  # optional — plotting gracefully skipped if absent
-torch>=2.0

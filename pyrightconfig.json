@@ -1,9 +1,0 @@
-{
-  "pythonVersion": "3.12",
-  "venvPath": ".",
-  "venv": ".env",
-  "include": ["tictactoe"],
-  "extraPaths": ["."],
-  "reportMissingImports": "warning",
-  "reportMissingModuleSource": "none"
-}
