@@ -6,8 +6,8 @@ README.md
 # Virtual environment
 .venv/
 
-src/agents
-src/tests/test_agents.py
+src/agents/minimax_agent.py
+src/agents/minimax_alphabeta_agent.py
 src/tests/test_minimax_agent.py
 src/tests/test_minimax_alphabeta_agent.py
 
