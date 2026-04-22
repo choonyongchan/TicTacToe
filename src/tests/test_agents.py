@@ -6,7 +6,6 @@ from unittest.mock import patch
 from src.agents.random_agent import RandomAgent
 from src.core.board import Board as board_mod
 from src.core.state import State
-from src.core.types import Player
 
 
 def fresh_state() -> State:

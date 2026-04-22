@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
-from src.core.types import Player, Direction, DIRECTIONS, ZOBRIST_TABLE
+from src.core.types import Player, DIRECTIONS, ZOBRIST_TABLE
 from src.core.board import Board as board_mod
 from src.core.state import State
 
@@ -27,8 +26,6 @@ class TestTypes:
         assert len(DIRECTIONS) == 4
 
     def test_direction_tuples(self):
-        drs = {d.dr for d in DIRECTIONS}
-        dcs = {d.dc for d in DIRECTIONS}
         assert (0, 1) in [(d.dr, d.dc) for d in DIRECTIONS]  # horizontal
         assert (1, 0) in [(d.dr, d.dc) for d in DIRECTIONS]  # vertical
 
@@ -265,7 +262,6 @@ class TestStateApply:
         # Same position reached in one move then undone and redone
         s = State()
         s.apply(0, 0)
-        h = s._hash
         s.undo()
         s.apply(0, 0)
         # visited already has this hash, state_count stays at 1
