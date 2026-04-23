@@ -1,9 +1,16 @@
 """Tests for src/agents/minimax_agent.py."""
+
 from __future__ import annotations
 
 from src.agents.minimax_agent import MinimaxAgent
 from src.core.types import Player
-from src.tests.test_helper import fresh_state, state_with_moves, PUZZLE_3X3, PUZZLE_4X4, PUZZLE_5X5
+from src.tests.test_helper import (
+    fresh_state,
+    state_with_moves,
+    PUZZLE_3X3,
+    PUZZLE_4X4,
+    PUZZLE_5X5,
+)
 
 
 class TestMinimaxAgentInit:
@@ -33,13 +40,19 @@ class TestTerminalScore:
 
     def test_draw_returns_0(self):
         # Full board, no winner
-        state = state_with_moves([
-            (0, 0), (0, 1),
-            (0, 2), (1, 0),
-            (1, 1), (2, 0),
-            (1, 2), (2, 2),
-            (2, 1),
-        ])
+        state = state_with_moves(
+            [
+                (0, 0),
+                (0, 1),
+                (0, 2),
+                (1, 0),
+                (1, 1),
+                (2, 0),
+                (1, 2),
+                (2, 2),
+                (2, 1),
+            ]
+        )
         assert state.is_terminal()
         assert state.winner() is None
         agent = MinimaxAgent(Player.X)
@@ -171,12 +184,18 @@ class TestActValidMove:
 
     def test_only_one_cell_left(self):
         # Fill 8 cells leaving only (2,2) empty, with no winner at any step.
-        state = state_with_moves([
-            (1, 0), (0, 0),
-            (0, 1), (1, 1),
-            (0, 2), (1, 2),
-            (2, 0), (2, 1),
-        ])
+        state = state_with_moves(
+            [
+                (1, 0),
+                (0, 0),
+                (0, 1),
+                (1, 1),
+                (0, 2),
+                (1, 2),
+                (2, 0),
+                (2, 1),
+            ]
+        )
         assert not state.is_terminal()
         agent = MinimaxAgent(Player.X)
         assert agent.act(state) == (2, 2)

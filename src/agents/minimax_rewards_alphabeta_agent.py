@@ -4,7 +4,7 @@ from src.core.types import INFINITY, NEGATIVE_INFINITY, Player
 
 
 class MinimaxRewardsAlphaBetaAgent(BaseAgent):
-    def __init__(self, maximizer: Player, max_depth: int = 9) -> None:
+    def __init__(self, maximizer: Player, max_depth: int) -> None:
         super().__init__("MinimaxRewardsAlphaBetaAgent")
         self.maximizer = maximizer
         # epsilon = 1/(max_depth+1) guarantees win>0 and loss<0 at any reachable depth

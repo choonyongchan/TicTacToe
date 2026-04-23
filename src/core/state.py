@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .board import Board
-from .types import Board2D, Player
+from .types import Player
 from .zobrist import ZobristTable
 
 
@@ -18,7 +18,9 @@ class State:
     def apply(self, row: int, col: int) -> None:
         self.board.set(row, col, self.current_player)
         self.history.append((row, col))
-        self._hash = self._zobrist.hash_move(self._hash, row, col, int(self.current_player))
+        self._hash = self._zobrist.hash_move(
+            self._hash, row, col, int(self.current_player)
+        )
         if self._hash not in self.visited:
             self.visited.add(self._hash)
             self.state_count += 1

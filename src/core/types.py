@@ -5,9 +5,9 @@ import numpy as np
 
 
 class Player(IntEnum):
-    _ = 0 # Placeholder for empty cell, not a valid player.
+    _ = 0  # Placeholder for empty cell, not a valid player.
     X = 1
-    O = 2 # noqa: E741
+    O = 2  # noqa: E741
 
     def opponent(self) -> Player:
         return Player.O if self is Player.X else Player.X

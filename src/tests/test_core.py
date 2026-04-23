@@ -1,4 +1,5 @@
 """Tests for src/core: types, board, state."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -12,6 +13,7 @@ from src.core.zobrist import ZobristTable
 # ---------------------------------------------------------------------------
 # types.py
 # ---------------------------------------------------------------------------
+
 
 class TestTypes:
     def test_player_values(self):
@@ -51,6 +53,7 @@ class TestTypes:
 # ---------------------------------------------------------------------------
 # board.py — unit tests
 # ---------------------------------------------------------------------------
+
 
 class TestBoardCreate:
     def test_create_shape(self):
@@ -239,6 +242,7 @@ class TestBoardRender:
 # state.py — unit, bound, and e2e tests
 # ---------------------------------------------------------------------------
 
+
 class TestStateInit:
     def test_initial_board_empty(self):
         s = State()
@@ -381,7 +385,7 @@ class TestStateIsTerminal:
 
     def test_terminal_draw(self):
         # Fill board without a winner: X O X / X O X / O X O
-        moves = [(0,0),(0,1),(0,2),(1,1),(1,0),(1,2),(2,1),(2,0),(2,2)]
+        moves = [(0, 0), (0, 1), (0, 2), (1, 1), (1, 0), (1, 2), (2, 1), (2, 0), (2, 2)]
         s = State()
         for m in moves:
             s.apply(*m)
@@ -460,6 +464,7 @@ class TestStateReset:
 # ---------------------------------------------------------------------------
 # e2e: Spec verification tests
 # ---------------------------------------------------------------------------
+
 
 class TestSpecVerification:
     def test_three_in_a_row_terminal_and_winner(self):

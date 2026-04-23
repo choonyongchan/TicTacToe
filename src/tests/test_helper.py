@@ -1,20 +1,18 @@
 """Shared test helpers and puzzle fixtures for agent tests."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from collections.abc import Sequence
 
 from src.core.state import State
-from src.core.types import Player
 
 
 def fresh_state(n: int = 3, k: int = 3) -> State:
     return State(n, k)
 
 
-def state_with_moves(
-    moves: Sequence[tuple[int, int]], n: int = 3, k: int = 3
-) -> State:
+def state_with_moves(moves: Sequence[tuple[int, int]], n: int = 3, k: int = 3) -> State:
     s = State(n, k)
     for row, col in moves:
         s.apply(row, col)
@@ -56,7 +54,12 @@ PUZZLE_3X3 = Puzzle(
     n=3,
     k=3,
     moves=(
-        (0, 0), (0, 1), (1, 1), (2, 2), (1, 0), (2, 0),
+        (0, 0),
+        (0, 1),
+        (1, 1),
+        (2, 2),
+        (1, 0),
+        (2, 0),
     ),
     best_move=(1, 2),
     description="3×3 k=3 dummy tree: X to move, best move (1,2) wins row 1",
@@ -82,10 +85,20 @@ PUZZLE_4X4 = Puzzle(
     n=4,
     k=4,
     moves=(
-        (0, 0), (1, 0), (0, 1), (1, 1),
-        (0, 2), (1, 2), (2, 0), (2, 1),
-        (2, 2), (2, 3), (3, 1), (3, 0),
-        (3, 3), (3, 2),
+        (0, 0),
+        (1, 0),
+        (0, 1),
+        (1, 1),
+        (0, 2),
+        (1, 2),
+        (2, 0),
+        (2, 1),
+        (2, 2),
+        (2, 3),
+        (3, 1),
+        (3, 0),
+        (3, 3),
+        (3, 2),
     ),
     best_move=(0, 3),
     description="4×4 k=4 near-terminal: X wins row 0 with (0,3)",
@@ -93,30 +106,48 @@ PUZZLE_4X4 = Puzzle(
 
 
 # ---------------------------------------------------------------------------
-# 5×5, k=3 — near-terminal (2 empty cells), 2-ply tree
+# 5×5, k=3 — near-terminal (3 empty cells), 3-ply tree
 # ---------------------------------------------------------------------------
 #
-# Board after 23 moves (X to move, empty: (4,3) and (4,4)):
+# Board after 22 moves (X to move, empty: (4,2), (4,3), (4,4)):
 #   X | O | X | O | X
 #   X | O | X | O | X
 #   O | X | O | X | O
 #   O | X | O | X | O
-#   X | O | X | . | .
+#   X | O | . | . | .
 #
-# Hand-traced minimax tree (maximizer=X, k=3):
+# Hand-traced minimax tree (X to move, k=3):
 #   X(4,3) → col 3: (2,3)=X,(3,3)=X,(4,3)=X → X WINS        score =  1
-#   X(4,4) → O plays (4,3) → board full, no win → DRAW        score =  0
-# maximize(1, 0) = 1  →  best_move = (4, 3)
+#   X(4,4) → O plays (4,3) → draw                            score =  0
+#   X(4,2) → O plays (4,4) → col 4: O,O,O → O WINS          score = -1
+# maximize(1, 0, -1) = 1  →  best_move = (4, 3)
 
 PUZZLE_5X5 = Puzzle(
     n=5,
     k=3,
     moves=(
-        (0, 0), (0, 1), (0, 2), (0, 3), (0, 4),
-        (1, 1), (1, 0), (1, 3), (1, 2), (2, 0),
-        (1, 4), (2, 2), (2, 1), (2, 4), (2, 3),
-        (3, 0), (3, 1), (3, 2), (3, 3), (3, 4),
-        (4, 0), (4, 1), (4, 2),
+        (0, 0),
+        (0, 1),
+        (0, 2),
+        (0, 3),
+        (0, 4),
+        (1, 1),
+        (1, 0),
+        (1, 3),
+        (1, 2),
+        (2, 0),
+        (1, 4),
+        (2, 2),
+        (2, 1),
+        (2, 4),
+        (2, 3),
+        (3, 0),
+        (3, 1),
+        (3, 2),
+        (3, 3),
+        (3, 4),
+        (4, 0),
+        (4, 1),
     ),
     best_move=(4, 3),
     description="5×5 k=3 near-terminal: X wins col 3 with (4,3)",

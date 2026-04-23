@@ -33,7 +33,9 @@ class Board:
     def is_in_bounds(self, row: int, col: int) -> bool:
         return 0 <= row < self.n and 0 <= col < self.n
 
-    def _check_direction(self, row: int, col: int, player_val: int, dr: int, dc: int) -> int:
+    def _check_direction(
+        self, row: int, col: int, player_val: int, dr: int, dc: int
+    ) -> int:
         count = 0
         r, c = row + dr, col + dc
         while self.is_in_bounds(r, c) and int(self.board[r, c]) == player_val:
@@ -47,9 +49,11 @@ class Board:
         if player_val == Player._:
             return False
         for dr, dc in DIRECTIONS:
-            count = (1
-                     + self._check_direction(row, col, player_val,  dr,  dc)
-                     + self._check_direction(row, col, player_val, -dr, -dc))
+            count = (
+                1
+                + self._check_direction(row, col, player_val, dr, dc)
+                + self._check_direction(row, col, player_val, -dr, -dc)
+            )
             if count >= self.k:
                 return True
         return False

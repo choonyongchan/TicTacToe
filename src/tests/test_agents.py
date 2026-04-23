@@ -1,4 +1,5 @@
 """Tests for src/agents: RandomAgent."""
+
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -10,6 +11,7 @@ from src.tests.test_helper import fresh_state, state_with_moves
 # ---------------------------------------------------------------------------
 # RandomAgent
 # ---------------------------------------------------------------------------
+
 
 class TestRandomAgentInit:
     def test_name(self):
@@ -41,10 +43,14 @@ class TestRandomAgentAct:
     def test_act_never_returns_occupied_cell(self):
         # Fill all cells except (2, 2); act() must return (2, 2).
         moves = [
-            (0, 0), (0, 1),
-            (0, 2), (1, 0),
-            (1, 1), (1, 2),
-            (2, 0), (2, 1),
+            (0, 0),
+            (0, 1),
+            (0, 2),
+            (1, 0),
+            (1, 1),
+            (1, 2),
+            (2, 0),
+            (2, 1),
         ]
         state = state_with_moves(moves)
         agent = RandomAgent()
@@ -52,10 +58,14 @@ class TestRandomAgentAct:
 
     def test_act_with_one_empty_cell(self):
         moves = [
-            (0, 0), (0, 1),
-            (0, 2), (1, 0),
-            (1, 1), (1, 2),
-            (2, 0), (2, 1),
+            (0, 0),
+            (0, 1),
+            (0, 2),
+            (1, 0),
+            (1, 1),
+            (1, 2),
+            (2, 0),
+            (2, 1),
         ]
         state = state_with_moves(moves)
         agent = RandomAgent()
@@ -74,6 +84,8 @@ class TestRandomAgentActMocked:
     def test_act_calls_random_choice_with_empty_cells(self):
         state = fresh_state()
         expected_empty = state.board.get_empty_cells()
-        with patch("src.agents.random_agent.random.choice", return_value=(0, 0)) as mock_choice:
+        with patch(
+            "src.agents.random_agent.random.choice", return_value=(0, 0)
+        ) as mock_choice:
             RandomAgent().act(state)
             mock_choice.assert_called_once_with(expected_empty)

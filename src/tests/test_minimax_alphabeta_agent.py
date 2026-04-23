@@ -1,9 +1,16 @@
 """Tests for src/agents/minimax_alphabeta_agent.py."""
+
 from __future__ import annotations
 
 from src.agents.minimax_alphabeta_agent import MinimaxAlphaBetaAgent
 from src.core.types import Player
-from src.tests.test_helper import fresh_state, state_with_moves, PUZZLE_3X3, PUZZLE_4X4, PUZZLE_5X5
+from src.tests.test_helper import (
+    fresh_state,
+    state_with_moves,
+    PUZZLE_3X3,
+    PUZZLE_4X4,
+    PUZZLE_5X5,
+)
 
 
 class TestMinimaxAlphaBetaAgentInit:
@@ -30,13 +37,19 @@ class TestTerminalScore:
         assert agent._terminal_score(state) == -1
 
     def test_draw_returns_0(self):
-        state = state_with_moves([
-            (0, 0), (0, 1),
-            (0, 2), (1, 0),
-            (1, 1), (2, 0),
-            (1, 2), (2, 2),
-            (2, 1),
-        ])
+        state = state_with_moves(
+            [
+                (0, 0),
+                (0, 1),
+                (0, 2),
+                (1, 0),
+                (1, 1),
+                (2, 0),
+                (1, 2),
+                (2, 2),
+                (2, 1),
+            ]
+        )
         assert state.is_terminal()
         assert state.winner() is None
         agent = MinimaxAlphaBetaAgent(Player.X)
@@ -230,12 +243,18 @@ class TestActValidMove:
         assert state.board.is_empty(row, col)
 
     def test_only_one_cell_left(self):
-        state = state_with_moves([
-            (1, 0), (0, 0),
-            (0, 1), (1, 1),
-            (0, 2), (1, 2),
-            (2, 0), (2, 1),
-        ])
+        state = state_with_moves(
+            [
+                (1, 0),
+                (0, 0),
+                (0, 1),
+                (1, 1),
+                (0, 2),
+                (1, 2),
+                (2, 0),
+                (2, 1),
+            ]
+        )
         assert not state.is_terminal()
         agent = MinimaxAlphaBetaAgent(Player.X)
         assert agent.act(state) == (2, 2)
