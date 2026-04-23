@@ -2,19 +2,8 @@
 from __future__ import annotations
 
 from src.agents.minimax_alphabeta_agent import MinimaxAlphaBetaAgent
-from src.core.state import State
 from src.core.types import Player
-
-
-def fresh_state() -> State:
-    return State()
-
-
-def state_with_moves(moves: list[tuple[int, int]]) -> State:
-    s = State()
-    for row, col in moves:
-        s.apply(row, col)
-    return s
+from src.tests.test_helper import fresh_state, state_with_moves, PUZZLE_3X3, PUZZLE_4X4, PUZZLE_5X5
 
 
 class TestMinimaxAlphaBetaAgentInit:
@@ -54,18 +43,7 @@ class TestTerminalScore:
         assert agent._terminal_score(state) == 0
 
 
-# Shared fixture for the dummy tree position.
-# Board after: X(0,0), O(0,1), X(1,1), O(2,2), X(1,0), O(2,0)
-#   X | O | .
-#   X | X | .
-#   O | . | O
-# It is X's turn. Maximizer = X. Empty cells (in order): (0,2), (1,2), (2,1)
-#
-# Hand-traced scores (maximizer=X):
-#   X(0,2) → O's best response → score = -1
-#   X(1,2) → row 1 = X,X,X → X WINS immediately → score = 1
-#   X(2,1) → O's best response → score = 0
-DUMMY_TREE_MOVES = [(0, 0), (0, 1), (1, 1), (2, 2), (1, 0), (2, 0)]
+DUMMY_TREE_MOVES = PUZZLE_3X3.moves
 
 
 class TestMinimaxAlphaBetaSmallTree:
@@ -261,3 +239,17 @@ class TestActValidMove:
         assert not state.is_terminal()
         agent = MinimaxAlphaBetaAgent(Player.X)
         assert agent.act(state) == (2, 2)
+
+
+class TestActLargerBoards:
+    """act() picks the correct move on 4×4 and 5×5 puzzle positions."""
+
+    def test_4x4_picks_best_move(self):
+        state = state_with_moves(PUZZLE_4X4.moves, PUZZLE_4X4.n, PUZZLE_4X4.k)
+        agent = MinimaxAlphaBetaAgent(Player.X)
+        assert agent.act(state) == PUZZLE_4X4.best_move
+
+    def test_5x5_picks_best_move(self):
+        state = state_with_moves(PUZZLE_5X5.moves, PUZZLE_5X5.n, PUZZLE_5X5.k)
+        agent = MinimaxAlphaBetaAgent(Player.X)
+        assert agent.act(state) == PUZZLE_5X5.best_move

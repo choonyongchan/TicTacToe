@@ -4,44 +4,11 @@ from __future__ import annotations
 import pytest
 
 from src.agents.minimax_rewards_alphabeta_agent import MinimaxRewardsAlphaBetaAgent
-from src.core.state import State
 from src.core.types import Player
+from src.tests.test_helper import fresh_state, state_with_moves, PUZZLE_3X3, PUZZLE_4X4, PUZZLE_5X5
 
 
-def fresh_state() -> State:
-    return State()
-
-
-def state_with_moves(moves: list[tuple[int, int]]) -> State:
-    s = State()
-    for row, col in moves:
-        s.apply(row, col)
-    return s
-
-
-# Shared dummy search tree (mirrored from test_minimax_alphabeta_agent.py).
-# Board after: X(0,0), O(0,1), X(1,1), O(2,2), X(1,0), O(2,0)
-#   X | O | .
-#   X | X | .
-#   O | . | O
-# X to move. Empty cells (in order): (0,2), (1,2), (2,1).
-#
-# Hand-traced scores with ε = 0.1 (max_depth=9), maximizer=X:
-#
-#   X(1,2) → X wins row 1 immediately          depth=7  → 1.0 - 0.1×7 =  0.3
-#
-#   X(2,1) → O to move, empty: (0,2),(1,2)
-#               O(0,2) → X(1,2) → X wins row 1  depth=9  → 0.1
-#               O(1,2) → X(0,2) → board full/draw          → 0.0
-#             O minimises → 0.0
-#
-#   X(0,2) → O to move, empty: (1,2),(2,1)
-#               O(1,2) → X(2,1) → board full/draw          → 0.0
-#               O(2,1) → O wins row 2            depth=8  → -1.0 + 0.1×8 = -0.2
-#             O minimises → -0.2
-#
-# Root _maximize picks max(-0.2, 0.3, 0.0) = 0.3 → best move (1,2).
-_DUMMY_TREE_MOVES = [(0, 0), (0, 1), (1, 1), (2, 2), (1, 0), (2, 0)]
+_DUMMY_TREE_MOVES = PUZZLE_3X3.moves
 _EPS = 1.0 / 10  # epsilon for default max_depth=9
 
 
@@ -122,7 +89,7 @@ class TestTerminalScore:
         state_d6 = state_with_moves([(0, 1), (0, 0), (0, 2), (1, 0), (2, 1), (2, 0)])
         # O wins at depth 8: from dummy tree root, X plays (0,2) then O plays (2,1) → O row 2
         # _DUMMY_TREE_MOVES(6) + X(0,2)(7) + O(2,1)(8) → O has (2,0),(2,2),(2,1) = row 2 win
-        state_d8 = state_with_moves(_DUMMY_TREE_MOVES + [(0, 2), (2, 1)])
+        state_d8 = state_with_moves(_DUMMY_TREE_MOVES + ((0, 2), (2, 1)))
         agent = MinimaxRewardsAlphaBetaAgent(Player.X)
         assert agent._terminal_score(state_d8) > agent._terminal_score(state_d6)
 
@@ -132,7 +99,7 @@ class TestMinimaxRewardsSmallTree:
 
     def test_winning_branch_scores_depth7(self):
         # X(1,2) → X wins row 1, depth 7 → 1.0 - ε×7
-        state = state_with_moves(_DUMMY_TREE_MOVES + [(1, 2)])
+        state = state_with_moves(_DUMMY_TREE_MOVES + ((1, 2),))
         agent = MinimaxRewardsAlphaBetaAgent(Player.X)
         assert state.is_terminal()
         assert agent._minimax(state, float("-inf"), float("inf")) == pytest.approx(1.0 - _EPS * 7)
@@ -175,7 +142,7 @@ class TestMinimaxRewardsSmallTree:
         # 0.3 > 0.0 — confirms the agent strictly prefers the winning path
         agent = MinimaxRewardsAlphaBetaAgent(Player.X)
         win_score = agent._minimax(
-            state_with_moves(_DUMMY_TREE_MOVES + [(1, 2)]), float("-inf"), float("inf")
+            state_with_moves(_DUMMY_TREE_MOVES + ((1, 2),)), float("-inf"), float("inf")
         )
         draw_state = state_with_moves(_DUMMY_TREE_MOVES)
         draw_state.apply(2, 1)
@@ -287,3 +254,21 @@ class TestActValidMove:
         assert not state.is_terminal()
         agent = MinimaxRewardsAlphaBetaAgent(Player.X)
         assert agent.act(state) == (2, 2)
+
+
+class TestActLargerBoards:
+    """act() picks the correct move on 4×4 and 5×5 puzzle positions.
+
+    max_depth is set to n*n so depth-scaled win scores remain positive
+    regardless of how many moves have already been played.
+    """
+
+    def test_4x4_picks_best_move(self):
+        state = state_with_moves(PUZZLE_4X4.moves, PUZZLE_4X4.n, PUZZLE_4X4.k)
+        agent = MinimaxRewardsAlphaBetaAgent(Player.X, max_depth=PUZZLE_4X4.n ** 2)
+        assert agent.act(state) == PUZZLE_4X4.best_move
+
+    def test_5x5_picks_best_move(self):
+        state = state_with_moves(PUZZLE_5X5.moves, PUZZLE_5X5.n, PUZZLE_5X5.k)
+        agent = MinimaxRewardsAlphaBetaAgent(Player.X, max_depth=PUZZLE_5X5.n ** 2)
+        assert agent.act(state) == PUZZLE_5X5.best_move

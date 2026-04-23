@@ -4,18 +4,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from src.agents.random_agent import RandomAgent
-from src.core.state import State
-
-
-def fresh_state() -> State:
-    return State()
-
-
-def state_with_moves(moves: list[tuple[int, int]]) -> State:
-    s = State()
-    for row, col in moves:
-        s.apply(row, col)
-    return s
+from src.tests.test_helper import fresh_state, state_with_moves
 
 
 # ---------------------------------------------------------------------------
