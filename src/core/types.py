@@ -30,12 +30,7 @@ class Direction(Enum):
 
 DIRECTIONS = tuple(Direction)
 
-Board2D = np.ndarray  # shape (3, 3), dtype uint8
+Board2D = np.ndarray  # shape (n, n), dtype uint8
 
 INFINITY: float = float("inf")
 NEGATIVE_INFINITY: float = float("-inf")
-
-_rng = np.random.default_rng(42)
-ZOBRIST_TABLE: np.ndarray = _rng.integers(
-    0, np.iinfo(np.uint64).max, size=(3, 3, 3), dtype=np.uint64
-)

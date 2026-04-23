@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 
-from src.core.board import Board
 from src.core.state import State
 
 
@@ -12,4 +11,4 @@ class BaseAgent(ABC):
     def act(self, state: State) -> tuple[int, int]: ...
 
     def validate(self, state: State, row: int, col: int) -> bool:
-        return Board.is_in_bounds(row, col) and Board.is_empty(state.board, row, col)
+        return state.board.is_in_bounds(row, col) and state.board.is_empty(row, col)

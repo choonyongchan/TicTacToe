@@ -1,5 +1,4 @@
 from src.agents.base_agent import BaseAgent
-from src.core.board import Board
 from src.core.state import State
 from src.core.types import Player
 
@@ -13,7 +12,7 @@ class MinimaxAlphaBetaAgent(BaseAgent):
         best_score = -2
         best_move: tuple[int, int] | None = None
         alpha = -2
-        for row, col in Board.get_empty_cells(state.board):
+        for row, col in state.board.get_empty_cells():
             state.apply(row, col)
             score = self._minimax(state, alpha, 2)
             state.undo()
@@ -41,7 +40,7 @@ class MinimaxAlphaBetaAgent(BaseAgent):
 
     def _maximize(self, state: State, alpha: int, beta: int) -> int:
         best = -2
-        for row, col in Board.get_empty_cells(state.board):
+        for row, col in state.board.get_empty_cells():
             state.apply(row, col)
             score = self._minimax(state, alpha, beta)
             state.undo()
@@ -55,7 +54,7 @@ class MinimaxAlphaBetaAgent(BaseAgent):
 
     def _minimize(self, state: State, alpha: int, beta: int) -> int:
         best = 2
-        for row, col in Board.get_empty_cells(state.board):
+        for row, col in state.board.get_empty_cells():
             state.apply(row, col)
             score = self._minimax(state, alpha, beta)
             state.undo()

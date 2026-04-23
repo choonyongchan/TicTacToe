@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.core.types import Player, DIRECTIONS, ZOBRIST_TABLE
-from src.core.board import Board as board_mod
+from src.core.types import Player, DIRECTIONS
+from src.core.board import Board
 from src.core.state import State
+from src.core.zobrist import ZobristTable
 
 
 # ---------------------------------------------------------------------------
@@ -30,13 +31,21 @@ class TestTypes:
         assert (1, 0) in [(d.dr, d.dc) for d in DIRECTIONS]  # vertical
 
     def test_zobrist_table_shape(self):
-        assert ZOBRIST_TABLE.shape == (3, 3, 3)
+        assert ZobristTable(3)._table.shape == (3, 3, 3)
 
     def test_zobrist_table_dtype(self):
-        assert ZOBRIST_TABLE.dtype == np.uint64
+        assert ZobristTable(3)._table.dtype == np.uint64
 
     def test_zobrist_values_nonzero(self):
-        assert np.all(ZOBRIST_TABLE != 0)
+        assert np.all(ZobristTable(3)._table != 0)
+
+    def test_zobrist_table_nxn_shape(self):
+        assert ZobristTable(5)._table.shape == (5, 5, 3)
+
+    def test_zobrist_hash_move_xor_inverse(self):
+        zt = ZobristTable(3)
+        h = zt.hash_move(0, 0, 0, int(Player.X))
+        assert zt.hash_move(h, 0, 0, int(Player.X)) == 0
 
 
 # ---------------------------------------------------------------------------
@@ -45,91 +54,100 @@ class TestTypes:
 
 class TestBoardCreate:
     def test_create_shape(self):
-        b = board_mod.create()
-        assert b.shape == (3, 3)
+        b = Board(3, 3)
+        assert b.board.shape == (3, 3)
 
     def test_create_dtype(self):
-        b = board_mod.create()
-        assert b.dtype == np.uint8
+        b = Board(3, 3)
+        assert b.board.dtype == np.uint8
 
     def test_create_all_empty(self):
-        b = board_mod.create()
-        assert (b == Player._).all()
+        b = Board(3, 3)
+        assert (b.board == Player._).all()
+
+    def test_create_nxn_shape(self):
+        b = Board(5, 3)
+        assert b.board.shape == (5, 5)
+
+    def test_board_stores_n_and_k(self):
+        b = Board(4, 3)
+        assert b.n == 4
+        assert b.k == 3
 
 
 class TestBoardReset:
     def test_reset_clears_board(self):
-        b = board_mod.create()
-        board_mod.set(b, 0, 0, Player.X)
-        board_mod.reset(b)
-        assert (b == Player._).all()
+        b = Board(3, 3)
+        b.set(0, 0, Player.X)
+        b.reset()
+        assert (b.board == Player._).all()
 
 
 class TestBoardGetSet:
     def test_set_and_get(self):
-        b = board_mod.create()
-        board_mod.set(b, 1, 2, Player.X)
-        assert board_mod.get(b, 1, 2) is Player.X
+        b = Board(3, 3)
+        b.set(1, 2, Player.X)
+        assert b.get(1, 2) is Player.X
 
     def test_set_o(self):
-        b = board_mod.create()
-        board_mod.set(b, 0, 0, Player.O)
-        assert board_mod.get(b, 0, 0) is Player.O
+        b = Board(3, 3)
+        b.set(0, 0, Player.O)
+        assert b.get(0, 0) is Player.O
 
     def test_get_empty(self):
-        b = board_mod.create()
-        assert board_mod.get(b, 2, 2) is Player._
+        b = Board(3, 3)
+        assert b.get(2, 2) is Player._
 
 
 class TestBoardIsEmpty:
     def test_empty_cell(self):
-        b = board_mod.create()
-        assert board_mod.is_empty(b, 0, 0) is True
+        b = Board(3, 3)
+        assert b.is_empty(0, 0) is True
 
     def test_occupied_cell(self):
-        b = board_mod.create()
-        board_mod.set(b, 0, 0, Player.X)
-        assert board_mod.is_empty(b, 0, 0) is False
+        b = Board(3, 3)
+        b.set(0, 0, Player.X)
+        assert b.is_empty(0, 0) is False
 
 
 class TestBoardIsFull:
     def test_empty_board_not_full(self):
-        b = board_mod.create()
-        assert board_mod.is_full(b) is False
+        b = Board(3, 3)
+        assert b.is_full() is False
 
     def test_full_board(self):
-        b = board_mod.create()
+        b = Board(3, 3)
         for r in range(3):
             for c in range(3):
-                board_mod.set(b, r, c, Player.X)
-        assert board_mod.is_full(b) is True
+                b.set(r, c, Player.X)
+        assert b.is_full() is True
 
     def test_one_empty_not_full(self):
-        b = board_mod.create()
+        b = Board(3, 3)
         for r in range(3):
             for c in range(3):
-                board_mod.set(b, r, c, Player.X)
-        b[2, 2] = Player._
-        assert board_mod.is_full(b) is False
+                b.set(r, c, Player.X)
+        b.board[2, 2] = Player._
+        assert b.is_full() is False
 
 
 class TestBoardGetEmptyCells:
     def test_all_empty(self):
-        b = board_mod.create()
-        cells = board_mod.get_empty_cells(b)
+        b = Board(3, 3)
+        cells = b.get_empty_cells()
         assert len(cells) == 9
 
     def test_row_major_order(self):
-        b = board_mod.create()
-        cells = board_mod.get_empty_cells(b)
+        b = Board(3, 3)
+        cells = b.get_empty_cells()
         assert cells[0] == (0, 0)
         assert cells[-1] == (2, 2)
 
     def test_partial_filled(self):
-        b = board_mod.create()
-        board_mod.set(b, 0, 0, Player.X)
-        board_mod.set(b, 1, 1, Player.O)
-        cells = board_mod.get_empty_cells(b)
+        b = Board(3, 3)
+        b.set(0, 0, Player.X)
+        b.set(1, 1, Player.O)
+        cells = b.get_empty_cells()
         assert len(cells) == 7
         assert (0, 0) not in cells
         assert (1, 1) not in cells
@@ -137,70 +155,82 @@ class TestBoardGetEmptyCells:
 
 class TestBoardCheckWin:
     def test_no_win_empty(self):
-        b = board_mod.create()
-        board_mod.set(b, 0, 0, Player.X)
-        assert board_mod.check_win(b, 0, 0) is False
+        b = Board(3, 3)
+        b.set(0, 0, Player.X)
+        assert b.check_win(0, 0) is False
 
     def test_horizontal_win(self):
-        b = board_mod.create()
+        b = Board(3, 3)
         for c in range(3):
-            board_mod.set(b, 0, c, Player.X)
-        assert board_mod.check_win(b, 0, 1) is True
+            b.set(0, c, Player.X)
+        assert b.check_win(0, 1) is True
 
     def test_vertical_win(self):
-        b = board_mod.create()
+        b = Board(3, 3)
         for r in range(3):
-            board_mod.set(b, r, 0, Player.O)
-        assert board_mod.check_win(b, 1, 0) is True
+            b.set(r, 0, Player.O)
+        assert b.check_win(1, 0) is True
 
     def test_diagonal_win(self):
-        b = board_mod.create()
+        b = Board(3, 3)
         for i in range(3):
-            board_mod.set(b, i, i, Player.X)
-        assert board_mod.check_win(b, 1, 1) is True
+            b.set(i, i, Player.X)
+        assert b.check_win(1, 1) is True
 
     def test_anti_diagonal_win(self):
-        b = board_mod.create()
-        board_mod.set(b, 0, 2, Player.O)
-        board_mod.set(b, 1, 1, Player.O)
-        board_mod.set(b, 2, 0, Player.O)
-        assert board_mod.check_win(b, 1, 1) is True
+        b = Board(3, 3)
+        b.set(0, 2, Player.O)
+        b.set(1, 1, Player.O)
+        b.set(2, 0, Player.O)
+        assert b.check_win(1, 1) is True
 
     def test_no_win_two_in_a_row(self):
-        b = board_mod.create()
-        board_mod.set(b, 0, 0, Player.X)
-        board_mod.set(b, 0, 1, Player.X)
-        assert board_mod.check_win(b, 0, 1) is False
+        b = Board(3, 3)
+        b.set(0, 0, Player.X)
+        b.set(0, 1, Player.X)
+        assert b.check_win(0, 1) is False
 
     def test_empty_cell_no_win(self):
-        b = board_mod.create()
-        assert board_mod.check_win(b, 0, 0) is False
+        b = Board(3, 3)
+        assert b.check_win(0, 0) is False
 
     def test_mixed_row_no_win(self):
-        b = board_mod.create()
-        board_mod.set(b, 0, 0, Player.X)
-        board_mod.set(b, 0, 1, Player.O)
-        board_mod.set(b, 0, 2, Player.X)
-        assert board_mod.check_win(b, 0, 0) is False
+        b = Board(3, 3)
+        b.set(0, 0, Player.X)
+        b.set(0, 1, Player.O)
+        b.set(0, 2, Player.X)
+        assert b.check_win(0, 0) is False
+
+    def test_4x4_board_k4_win(self):
+        b = Board(4, 4)
+        for c in range(4):
+            b.set(0, c, Player.X)
+        assert b.check_win(0, 2) is True
+
+    def test_4x4_board_k4_no_win_on_3(self):
+        b = Board(4, 4)
+        for c in range(3):
+            b.set(0, c, Player.X)
+        assert b.check_win(0, 1) is False
 
 
 class TestBoardRender:
     def test_render_empty(self):
-        b = board_mod.create()
-        result = board_mod.render(b)
+        b = Board(3, 3)
+        result = b.render()
         assert "." in result
         assert result.count(".") == 9
 
     def test_render_with_last_move(self):
-        b = board_mod.create()
-        board_mod.set(b, 1, 1, Player.X)
-        result = board_mod.render(b, 1, 1)
+        b = Board(3, 3)
+        b.set(1, 1, Player.X)
+        result = b.render(1, 1)
         assert "[X]" in result
 
     def test_render_no_last_move(self):
-        b = board_mod.create()
-        board_mod.set(b, 0, 0, Player.X)
-        result = board_mod.render(b)
+        b = Board(3, 3)
+        b.set(0, 0, Player.X)
+        result = b.render()
         assert " X " in result
         assert "[X]" not in result
 
@@ -212,7 +242,7 @@ class TestBoardRender:
 class TestStateInit:
     def test_initial_board_empty(self):
         s = State()
-        assert (s.board == Player._).all()
+        assert (s.board.board == Player._).all()
 
     def test_initial_player_x(self):
         s = State()
@@ -230,12 +260,18 @@ class TestStateInit:
         s = State()
         assert s._hash == 0
 
+    def test_state_nxn(self):
+        s = State(n=4, k=3)
+        assert s.board.board.shape == (4, 4)
+        assert s.board.n == 4
+        assert s.board.k == 3
+
 
 class TestStateApply:
     def test_apply_sets_board(self):
         s = State()
         s.apply(0, 0)
-        assert board_mod.get(s.board, 0, 0) is Player.X
+        assert s.board.get(0, 0) is Player.X
 
     def test_apply_switches_player(self):
         s = State()
@@ -255,7 +291,7 @@ class TestStateApply:
     def test_apply_updates_hash(self):
         s = State()
         s.apply(0, 0)
-        expected = int(ZOBRIST_TABLE[0, 0, int(Player.X)])
+        expected = s._zobrist.hash_move(0, 0, 0, int(Player.X))
         assert s._hash == expected
 
     def test_apply_does_not_double_count_same_hash(self):
@@ -271,8 +307,8 @@ class TestStateApply:
         s = State()
         s.apply(0, 0)
         s.apply(1, 1)
-        assert board_mod.get(s.board, 0, 0) is Player.X
-        assert board_mod.get(s.board, 1, 1) is Player.O
+        assert s.board.get(0, 0) is Player.X
+        assert s.board.get(1, 1) is Player.O
         assert s.current_player is Player.X
 
 
@@ -281,7 +317,7 @@ class TestStateUndo:
         s = State()
         s.apply(0, 0)
         s.undo()
-        assert board_mod.get(s.board, 0, 0) is Player._
+        assert s.board.get(0, 0) is Player._
 
     def test_undo_restores_player(self):
         s = State()
@@ -315,10 +351,10 @@ class TestStateUndo:
         s.apply(0, 0)
         s.apply(1, 1)
         s.undo()
-        assert board_mod.get(s.board, 1, 1) is Player._
+        assert s.board.get(1, 1) is Player._
         assert s.current_player is Player.O
         s.undo()
-        assert board_mod.get(s.board, 0, 0) is Player._
+        assert s.board.get(0, 0) is Player._
         assert s.current_player is Player.X
 
 
@@ -388,7 +424,7 @@ class TestStateReset:
         s = State()
         s.apply(0, 0)
         s.reset()
-        assert (s.board == Player._).all()
+        assert (s.board.board == Player._).all()
 
     def test_reset_player_is_x(self):
         s = State()
@@ -443,7 +479,7 @@ class TestSpecVerification:
         s.apply(1, 1)
         assert s.state_count == 1
         s.undo()
-        assert (s.board == Player._).all()
+        assert (s.board.board == Player._).all()
         assert s.state_count == 1  # undo never removes from visited
 
     def test_two_paths_same_hash(self):
@@ -466,3 +502,14 @@ class TestSpecVerification:
         s2.apply(1, 1)
 
         assert s1._hash != s2._hash
+
+    def test_4x4_k3_game(self):
+        """4x4 board with k=3: 3-in-a-row wins."""
+        s = State(n=4, k=3)
+        s.apply(0, 0)  # X
+        s.apply(1, 0)  # O
+        s.apply(0, 1)  # X
+        s.apply(1, 1)  # O
+        s.apply(0, 2)  # X wins (3 in a row)
+        assert s.is_terminal() is True
+        assert s.winner() is Player.X

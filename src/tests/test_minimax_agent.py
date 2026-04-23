@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from src.agents.minimax_agent import MinimaxAgent
-from src.core.board import Board
 from src.core.state import State
 from src.core.types import Player
 
@@ -199,7 +198,7 @@ class TestActValidMove:
         state = state_with_moves([(0, 0), (0, 1), (1, 0)])
         agent = MinimaxAgent(Player.O)
         row, col = agent.act(state)
-        assert Board.is_empty(state.board, row, col)
+        assert state.board.is_empty(row, col)
 
     def test_only_one_cell_left(self):
         # Fill 8 cells leaving only (2,2) empty, with no winner at any step.

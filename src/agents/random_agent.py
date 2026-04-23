@@ -1,7 +1,6 @@
 import random
 
 from src.agents.base_agent import BaseAgent
-from src.core.board import Board
 from src.core.state import State
 
 
@@ -10,5 +9,5 @@ class RandomAgent(BaseAgent):
         super().__init__("RandomAgent")
 
     def act(self, state: State) -> tuple[int, int]:
-        empty = Board.get_empty_cells(state.board)
+        empty = state.board.get_empty_cells()
         return random.choice(empty)

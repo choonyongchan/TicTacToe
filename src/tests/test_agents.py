@@ -4,7 +4,6 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from src.agents.random_agent import RandomAgent
-from src.core.board import Board as board_mod
 from src.core.state import State
 
 
@@ -48,7 +47,7 @@ class TestRandomAgentAct:
         agent = RandomAgent()
         state = fresh_state()
         row, col = agent.act(state)
-        assert board_mod.is_empty(state.board, row, col)
+        assert state.board.is_empty(row, col)
 
     def test_act_never_returns_occupied_cell(self):
         # Fill all cells except (2, 2); act() must return (2, 2).
@@ -85,7 +84,7 @@ class TestRandomAgentAct:
 class TestRandomAgentActMocked:
     def test_act_calls_random_choice_with_empty_cells(self):
         state = fresh_state()
-        expected_empty = board_mod.get_empty_cells(state.board)
+        expected_empty = state.board.get_empty_cells()
         with patch("src.agents.random_agent.random.choice", return_value=(0, 0)) as mock_choice:
             RandomAgent().act(state)
             mock_choice.assert_called_once_with(expected_empty)
