@@ -1,6 +1,7 @@
 import pytest
 
 from src.agents.bns_agent import BNSAgent
+from src.core.types import NEGATIVE_INFINITY
 from src.tests.test_helper import (
     PUZZLE_3X3,
     fresh_state,
@@ -40,3 +41,26 @@ class TestTerminalScore:
             PUZZLE_3X3.moves + ((1, 2),), PUZZLE_3X3.n, PUZZLE_3X3.k
         )
         assert BNSAgent(9)._terminal_score(state_d5) > BNSAgent(9)._terminal_score(state_d7)
+
+
+class TestAlphabeta:
+    def _puzzle_state(self):
+        return state_with_moves(PUZZLE_3X3.moves, PUZZLE_3X3.n, PUZZLE_3X3.k)
+
+    def test_full_window_returns_exact_value(self):
+        # PUZZLE_3X3 true value: 1.0 - 0.1*7 = 0.3 (X wins at depth 7)
+        state = self._puzzle_state()
+        score = BNSAgent(9)._alphabeta(state, NEGATIVE_INFINITY, -NEGATIVE_INFINITY)
+        assert score == pytest.approx(1.0 - _EPS * 7)
+
+    def test_fail_low_upper_bound(self):
+        # Window above true value → fail-low, returns <= alpha
+        state = self._puzzle_state()
+        score = BNSAgent(9)._alphabeta(state, 0.5, 1.0)
+        assert score <= 0.5
+
+    def test_fail_high_lower_bound(self):
+        # Window below true value → fail-high (beta cutoff), returns >= beta
+        state = self._puzzle_state()
+        score = BNSAgent(9)._alphabeta(state, NEGATIVE_INFINITY, 0.1)
+        assert score >= 0.1
