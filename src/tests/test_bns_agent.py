@@ -141,6 +141,8 @@ class TestActLargerBoards:
 
 
 class TestAgreesWithNegamax:
+    # test_agrees_on_empty_board is intentionally absent: on an empty board every
+    # move scores 0, so the agents disagree on tie-breaking order, not correctness.
     def test_agrees_on_puzzle_3x3(self):
         state = state_with_moves(PUZZLE_3X3.moves, PUZZLE_3X3.n, PUZZLE_3X3.k)
         assert BNSAgent(9).act(state) == NegamaxAgent(9).act(state)
