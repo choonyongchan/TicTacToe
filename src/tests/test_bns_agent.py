@@ -64,3 +64,72 @@ class TestAlphabeta:
         state = self._puzzle_state()
         score = BNSAgent(9)._alphabeta(state, NEGATIVE_INFINITY, 0.1)
         assert score >= 0.1
+
+
+class TestBns:
+    def test_returns_best_move_puzzle_3x3(self):
+        # PUZZLE_3X3: X to move, best move is (1,2) — wins row 1
+        state = state_with_moves(PUZZLE_3X3.moves, PUZZLE_3X3.n, PUZZLE_3X3.k)
+        assert BNSAgent(9)._bns(state, -1.0, 1.0) == (1, 2)
+
+    def test_alpha_raised_when_child_passes(self):
+        # A child ≥ test means alpha = test after the iteration.
+        # On PUZZLE_3X3 with test=0, (1,2) wins → better_count > 0 → alpha = 0.
+        state = state_with_moves(PUZZLE_3X3.moves, PUZZLE_3X3.n, PUZZLE_3X3.k)
+        agent = BNSAgent(9)
+        # _bns must return the winning move, confirming alpha was raised past 0.
+        assert agent._bns(state, -1.0, 1.0) == (1, 2)
+
+    def test_beta_lowered_when_no_child_passes(self):
+        # Window [-1, -0.5]: no child can score >= -0.5 on a winning position for X,
+        # so better_count=0 on first probe and beta drops to -0.5.
+        # The loop then converges below the true value but must still return a valid move.
+        state = state_with_moves(PUZZLE_3X3.moves, PUZZLE_3X3.n, PUZZLE_3X3.k)
+        agent = BNSAgent(9)
+        result = agent._bns(state, -1.0, -0.5)
+        assert result is not None
+        assert state.board.is_empty(*result)
+
+
+class TestActWinningMove:
+    def test_takes_immediate_win_row(self):
+        # X X .
+        # O O .
+        # . . .  → X plays (0,2) to complete row 0
+        state = state_with_moves([(0, 0), (1, 0), (0, 1), (1, 1)])
+        assert BNSAgent(9).act(state) == (0, 2)
+
+    def test_takes_immediate_win_column(self):
+        # X O .
+        # X O .
+        # . . .  → X plays (2,0) to complete col 0
+        state = state_with_moves([(0, 0), (0, 1), (1, 0), (1, 1)])
+        assert BNSAgent(9).act(state) == (2, 0)
+
+
+class TestActBlockingMove:
+    def test_blocks_opponent_win(self):
+        # O O .  → X must block at (0,2)
+        # X . .
+        # X . .
+        state = state_with_moves([(1, 0), (0, 0), (2, 0), (0, 1)])
+        assert BNSAgent(9).act(state) == (0, 2)
+
+
+class TestActSmallTree:
+    def test_picks_best_move_puzzle_3x3(self):
+        state = state_with_moves(PUZZLE_3X3.moves, PUZZLE_3X3.n, PUZZLE_3X3.k)
+        assert BNSAgent(9).act(state) == PUZZLE_3X3.best_move
+
+
+class TestActValidMove:
+    def test_returns_in_bounds_move(self):
+        state = fresh_state()
+        row, col = BNSAgent(9).act(state)
+        assert 0 <= row < state.board.n
+        assert 0 <= col < state.board.n
+
+    def test_returns_empty_cell(self):
+        state = fresh_state()
+        row, col = BNSAgent(9).act(state)
+        assert state.board.is_empty(row, col)

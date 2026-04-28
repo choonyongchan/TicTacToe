@@ -11,7 +11,9 @@ class BNSAgent(BaseAgent):
         self._epsilon = 1.0 / (max_depth + 1)
 
     def act(self, state: State) -> tuple[int, int]:
-        raise NotImplementedError
+        best = self._bns(state, -1.0, 1.0)
+        assert best is not None
+        return best
 
     def _terminal_score(self, state: State) -> float:
         if state.winner() is None:
@@ -33,3 +35,23 @@ class BNSAgent(BaseAgent):
             if best > alpha:
                 alpha = best
         return best
+
+    def _bns(self, state: State, alpha: float, beta: float) -> tuple[int, int] | None:
+        best_node: tuple[int, int] | None = None
+        while True:
+            test = (alpha + beta) / 2
+            better_count = 0
+            for row, col in state.board.get_empty_cells():
+                state.apply(row, col)
+                val = -self._alphabeta(state, -test, -(test - self._epsilon))
+                state.undo()
+                if val >= test:
+                    better_count += 1
+                    best_node = (row, col)
+            if better_count > 0:
+                alpha = test
+            else:
+                beta = test
+            if beta - alpha < 2 * self._epsilon or better_count == 1:
+                break
+        return best_node
