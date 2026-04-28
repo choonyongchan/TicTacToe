@@ -72,18 +72,10 @@ class TestBns:
         state = state_with_moves(PUZZLE_3X3.moves, PUZZLE_3X3.n, PUZZLE_3X3.k)
         assert BNSAgent(9)._bns(state, -1.0, 1.0) == (1, 2)
 
-    def test_alpha_raised_when_child_passes(self):
-        # A child ≥ test means alpha = test after the iteration.
-        # On PUZZLE_3X3 with test=0, (1,2) wins → better_count > 0 → alpha = 0.
-        state = state_with_moves(PUZZLE_3X3.moves, PUZZLE_3X3.n, PUZZLE_3X3.k)
-        agent = BNSAgent(9)
-        # _bns must return the winning move, confirming alpha was raised past 0.
-        assert agent._bns(state, -1.0, 1.0) == (1, 2)
-
     def test_beta_lowered_when_no_child_passes(self):
-        # Window [-1, -0.5]: no child can score >= -0.5 on a winning position for X,
-        # so better_count=0 on first probe and beta drops to -0.5.
-        # The loop then converges below the true value but must still return a valid move.
+        # Window [-1, -0.5] is entirely below the true value (+0.3).
+        # The winning child passes on the first probe (test=-0.75, val≈0.3 >= -0.75),
+        # so alpha keeps rising until beta-alpha < 2*epsilon, then the passing move is returned.
         state = state_with_moves(PUZZLE_3X3.moves, PUZZLE_3X3.n, PUZZLE_3X3.k)
         agent = BNSAgent(9)
         result = agent._bns(state, -1.0, -0.5)
