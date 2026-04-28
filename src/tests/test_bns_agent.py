@@ -1,9 +1,12 @@
 import pytest
 
 from src.agents.bns_agent import BNSAgent
+from src.agents.negamax_agent import NegamaxAgent
 from src.core.types import NEGATIVE_INFINITY
 from src.tests.test_helper import (
     PUZZLE_3X3,
+    PUZZLE_4X4,
+    PUZZLE_5X5,
     fresh_state,
     state_with_moves,
 )
@@ -125,3 +128,27 @@ class TestActValidMove:
         state = fresh_state()
         row, col = BNSAgent(9).act(state)
         assert state.board.is_empty(row, col)
+
+
+class TestActLargerBoards:
+    def test_4x4_picks_best_move(self):
+        state = state_with_moves(PUZZLE_4X4.moves, PUZZLE_4X4.n, PUZZLE_4X4.k)
+        assert BNSAgent(16).act(state) == PUZZLE_4X4.best_move
+
+    def test_5x5_picks_best_move(self):
+        state = state_with_moves(PUZZLE_5X5.moves, PUZZLE_5X5.n, PUZZLE_5X5.k)
+        assert BNSAgent(25).act(state) == PUZZLE_5X5.best_move
+
+
+class TestAgreesWithNegamax:
+    def test_agrees_on_puzzle_3x3(self):
+        state = state_with_moves(PUZZLE_3X3.moves, PUZZLE_3X3.n, PUZZLE_3X3.k)
+        assert BNSAgent(9).act(state) == NegamaxAgent(9).act(state)
+
+    def test_agrees_on_puzzle_4x4(self):
+        state = state_with_moves(PUZZLE_4X4.moves, PUZZLE_4X4.n, PUZZLE_4X4.k)
+        assert BNSAgent(16).act(state) == NegamaxAgent(16).act(state)
+
+    def test_agrees_on_puzzle_5x5(self):
+        state = state_with_moves(PUZZLE_5X5.moves, PUZZLE_5X5.n, PUZZLE_5X5.k)
+        assert BNSAgent(25).act(state) == NegamaxAgent(25).act(state)
