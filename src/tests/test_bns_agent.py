@@ -1,12 +1,8 @@
 import pytest
 
 from src.agents.bns_agent import BNSAgent
-from src.agents.negamax_agent import NegamaxAgent
-from src.core.types import NEGATIVE_INFINITY
 from src.tests.test_helper import (
     PUZZLE_3X3,
-    PUZZLE_4X4,
-    PUZZLE_5X5,
     fresh_state,
     state_with_moves,
 )
