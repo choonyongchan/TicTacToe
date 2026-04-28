@@ -41,10 +41,14 @@ test = (alpha + beta) / 2
 ### `_bns` loop
 
 ```python
+
+def _nextguess(self, alpha, beta):
+    return (alpha + beta) / 2
+
 def _bns(self, state, alpha, beta):
     best_node = None
     while True:
-        test = (alpha + beta) / 2
+        test = self._nextguess(alpha, beta)
         better_count = 0
         for row, col in state.board.get_empty_cells():
             state.apply(row, col)

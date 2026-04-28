@@ -36,10 +36,13 @@ class BNSAgent(BaseAgent):
                 alpha = best
         return best
 
+    def __heuristics(self, alpha: float, beta: float) -> float:
+        return (alpha + beta) / 2
+
     def _bns(self, state: State, alpha: float, beta: float) -> tuple[int, int] | None:
         best_node: tuple[int, int] | None = None
         while True:
-            test = (alpha + beta) / 2
+            test = self.__heuristics(alpha, beta)
             better_count = 0
             for row, col in state.board.get_empty_cells():
                 state.apply(row, col)

@@ -1,9 +1,8 @@
-from src.agents.minimax_rewards_alphabeta_agent import MinimaxRewardsAlphaBetaAgent
+from src.agents.bns_agent import BNSAgent
 from src.core.state import State
-from src.core.types import Player
 
-agents = {p: MinimaxRewardsAlphaBetaAgent(Player[p]) for p in ("X", "O")}
-state = State()
+agents = {p: BNSAgent(max_depth=9) for p in ("X", "O")}
+state = State(n=4, k=3)
 
 while not state.is_terminal():
     player = state.current_player
