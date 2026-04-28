@@ -118,3 +118,33 @@ class TestForkHeuristic:
         h = ForkHeuristic()
         score = h.evaluate(state)
         assert -1.0 <= score <= 1.0
+
+
+from src.heuristics.heuristic import Heuristic
+
+
+class TestHeuristic:
+    def test_empty_board_returns_zero(self):
+        # All three layers return 0.0 on empty board → ensemble = 0.0.
+        h = Heuristic()
+        assert h.evaluate(fresh_state(3, 3)) == pytest.approx(0.0)
+
+    def test_result_in_bounds(self):
+        state = state_with_moves([(0, 0), (0, 1), (1, 0), (1, 1)], n=5, k=3)
+        h = Heuristic()
+        score = h.evaluate(state)
+        assert -1.0 <= score <= 1.0
+
+    def test_current_player_with_open_run_returns_positive(self):
+        # Same position as TestTaxonomyHeuristic: X has open run, O is scattered.
+        state = state_with_moves([(1, 0), (0, 3), (1, 1), (3, 0)], n=4, k=3)
+        h = Heuristic()
+        assert h.evaluate(state) > 0.0
+
+    def test_implements_base_heuristic(self):
+        from src.heuristics.base_heuristic import BaseHeuristic
+        assert isinstance(Heuristic(), BaseHeuristic)
+
+    def test_components_count(self):
+        h = Heuristic()
+        assert len(h._components) == 3
