@@ -148,3 +148,31 @@ class TestHeuristic:
     def test_components_count(self):
         h = Heuristic()
         assert len(h._components) == 3
+
+
+from src.agents.mtdf_id_agent import MTDfIDAgent
+from src.core.transposition_table import TranspositionTable
+from src.core.types import NEGATIVE_INFINITY
+
+
+class TestMTDfIDAgentHeuristicIntegration:
+    def test_depth_zero_nonterminal_returns_heuristic_not_zero(self):
+        # 5x5, k=3. X=(0,0),(0,1) open run; O scattered. After 4 moves, current=X=player1.
+        # depth=0 must return the heuristic value (positive: X ahead) and NOT store in TT.
+        state = state_with_moves([(0, 0), (4, 0), (0, 1), (4, 4)], n=5, k=3)
+        agent = MTDfIDAgent(9)
+        tt = TranspositionTable()
+        score = agent._negamax_tt(state, NEGATIVE_INFINITY, -NEGATIVE_INFINITY, 0, tt)
+        # Heuristic returns positive since current player (X) has open run.
+        assert score > 0.0
+        assert len(tt) == 0  # still not stored in TT
+
+    def test_heuristic_prefers_threatening_move_over_neutral(self):
+        # 5x5 k=3. X=(0,0),(0,1) open run; O scattered. current=X.
+        # MTDfIDAgent(9) has epsilon=0.1; a 5-move win scores 1.0-0.1*5=0.5 > 0.
+        # The agent should take (0,2) which is an immediate win rather than any other cell.
+        state = state_with_moves([(0, 0), (4, 4), (0, 1), (4, 3)], n=5, k=3)
+        agent = MTDfIDAgent(9)
+        move = agent.act(state)
+        # (0,2) completes the row to length 3 = win for k=3. Agent must take it.
+        assert move == (0, 2)
