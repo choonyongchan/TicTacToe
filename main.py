@@ -1,8 +1,8 @@
-from src.agents.bns_agent import BNSAgent
+from src.agents.mtdf_id_agent import MTDfIDAgent
 from src.core.state import State
 
-agents = {p: BNSAgent(max_depth=9) for p in ("X", "O")}
-state = State(n=4, k=3)
+agents = {p: MTDfIDAgent(max_depth=4**2) for p in ("X", "O")}
+state = State(n=4, k=4)
 
 while not state.is_terminal():
     player = state.current_player

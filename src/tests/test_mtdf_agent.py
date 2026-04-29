@@ -7,6 +7,7 @@ from src.core.types import NEGATIVE_INFINITY
 from src.tests.test_helper import (
     PUZZLE_3X3,
     PUZZLE_4X4,
+    PUZZLE_4X4_BLOCK,
     PUZZLE_5X5,
     fresh_state,
     state_with_moves,
@@ -170,6 +171,12 @@ class TestActBlockingMove:
         state = state_with_moves([(1, 0), (0, 0), (2, 0), (0, 1)])
         agent = MTDfAgent(9)
         assert agent.act(state) == (0, 2)
+
+    def test_4x4_o_blocks_x_column(self):
+        state = state_with_moves(
+            PUZZLE_4X4_BLOCK.moves, PUZZLE_4X4_BLOCK.n, PUZZLE_4X4_BLOCK.k
+        )
+        assert MTDfAgent(PUZZLE_4X4_BLOCK.n ** 2).act(state) == PUZZLE_4X4_BLOCK.best_move
 
 
 class TestActSmallTree:

@@ -4,8 +4,8 @@ from src.agents.base_agent import BaseAgent
 from src.core.state import State
 from src.core.transposition_table import TranspositionTable
 from src.core.types import NEGATIVE_INFINITY
-from src.heuristics.heuristic import Heuristic
 from src.heuristics.base_heuristic import BaseHeuristic
+from src.heuristics.heuristic import Heuristic
 
 
 class MTDfIDAgent(BaseAgent):
@@ -77,7 +77,7 @@ class MTDfIDAgent(BaseAgent):
             if g > alpha:
                 alpha = g
 
-        existing = tt.lookup(h)
+        existing = tt.lookup(h) if tt.depth_of(h) == depth else None
         lb = existing[0] if existing is not None else NEGATIVE_INFINITY
         ub = existing[1] if existing is not None else -NEGATIVE_INFINITY
 

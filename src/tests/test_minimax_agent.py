@@ -9,6 +9,7 @@ from src.tests.test_helper import (
     state_with_moves,
     PUZZLE_3X3,
     PUZZLE_4X4,
+    PUZZLE_4X4_BLOCK,
     PUZZLE_5X5,
 )
 
@@ -142,6 +143,12 @@ class TestActBlockingMove:
         state = state_with_moves([(0, 2), (0, 0), (1, 2), (1, 1)])
         agent = MinimaxAgent(Player.X)
         assert agent.act(state) == (2, 2)
+
+    def test_o_blocks_x_column_win(self):
+        # X:(0,0),(1,0) threatens column 0. O:(1,1). O to move → must block at (2,0).
+        state = state_with_moves([(0, 0), (1, 1), (1, 0)])
+        agent = MinimaxAgent(Player.O)
+        assert agent.act(state) == (2, 0)
 
 
 class TestActOptimalPlay:

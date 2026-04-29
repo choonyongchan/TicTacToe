@@ -30,14 +30,17 @@ class TranspositionTable:
         best_move: tuple[int, int] | None,
         depth: int = 0,
     ) -> None:
+        if depth < self._depths.get(key, -1):
+            return
         self._table[key] = (lower, upper, best_move)
-        stored = self._depths.get(key, -1)
-        if depth > stored:
-            self._depths[key] = depth
+        self._depths[key] = depth
 
     def best_move(self, key: int) -> tuple[int, int] | None:
         entry = self._table.get(key)
         return entry[2] if entry is not None else None
+
+    def depth_of(self, key: int) -> int:
+        return self._depths.get(key, -1)
 
     def __len__(self) -> int:
         return len(self._table)

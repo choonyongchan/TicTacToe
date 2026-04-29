@@ -122,6 +122,29 @@ PUZZLE_4X4 = Puzzle(
 #   X(4,2) → O plays (4,4) → col 4: O,O,O → O WINS          score = -1
 # maximize(1, 0, -1) = 1  →  best_move = (4, 3)
 
+# ---------------------------------------------------------------------------
+# 4×4, k=3 — O must block X's column-0 threat
+# ---------------------------------------------------------------------------
+#
+# Board after 3 moves (X,O,X), O to move:
+#   X | . | . | .
+#   X | O | . | .
+#   . | . | . | .
+#   . | . | . | .
+#
+# X at (0,0),(1,0) threatens (2,0) for a 3-in-column win.
+# O at (1,1) has no immediate win.
+# O must block at (2,0).
+
+PUZZLE_4X4_BLOCK = Puzzle(
+    n=4,
+    k=3,
+    moves=((0, 0), (1, 1), (1, 0)),
+    best_move=(2, 0),
+    description="4×4 k=3 blocking: O to move, must block X's column-0 win at (2,0)",
+)
+
+
 PUZZLE_5X5 = Puzzle(
     n=5,
     k=3,

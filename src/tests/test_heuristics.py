@@ -147,7 +147,45 @@ class TestHeuristic:
 
     def test_components_count(self):
         h = Heuristic()
-        assert len(h._components) == 3
+        assert len(h._components) == 4
+
+
+from src.heuristics.threat_heuristic import ThreatHeuristic
+
+
+class TestThreatHeuristic:
+    def test_empty_board_returns_zero(self):
+        h = ThreatHeuristic()
+        assert h.evaluate(fresh_state(4, 3)) == pytest.approx(0.0)
+
+    def test_k_less_than_2_returns_zero(self):
+        h = ThreatHeuristic()
+        assert h.evaluate(fresh_state(3, 1)) == pytest.approx(0.0)
+
+    def test_current_player_with_threat_returns_positive(self):
+        # X:(0,0),(0,1) → row-0 window (0,0),(0,1),(0,2) has k-1=2 X pieces + 1 empty.
+        # O:(3,3),(3,0) in isolated corners, no k-1 window for O. Current=X. score>0.
+        state = state_with_moves([(0, 0), (3, 3), (0, 1), (3, 0)], n=4, k=3)
+        h = ThreatHeuristic()
+        assert h.evaluate(state) > 0.0
+
+    def test_opponent_with_threat_returns_negative(self):
+        # O:(0,0),(0,1) → row threat; X at corners, no threats. Current=X. score<0.
+        state = state_with_moves([(3, 3), (0, 0), (3, 0), (0, 1)], n=4, k=3)
+        h = ThreatHeuristic()
+        assert h.evaluate(state) < 0.0
+
+    def test_symmetric_threats_return_zero(self):
+        # X:(0,0),(0,1) has 1 row threat; O:(2,0),(2,1) has 1 row threat. Current=X.
+        # (threats_me - threats_opp) / total = (1-1)/2 = 0.
+        state = state_with_moves([(0, 0), (2, 0), (0, 1), (2, 1)], n=4, k=3)
+        h = ThreatHeuristic()
+        assert h.evaluate(state) == pytest.approx(0.0)
+
+    def test_result_in_bounds(self):
+        state = state_with_moves([(0, 0), (1, 0), (0, 1), (1, 1)], n=4, k=3)
+        h = ThreatHeuristic()
+        assert -1.0 <= h.evaluate(state) <= 1.0
 
 
 from src.agents.mtdf_id_agent import MTDfIDAgent

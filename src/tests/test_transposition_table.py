@@ -102,3 +102,65 @@ class TestOverwrite:
         tt.store(1, 0.0, 0.0, (0, 0))
         tt.store(1, 0.0, 0.0, (1, 1))
         assert tt.best_move(1) == (1, 1)
+
+
+class TestStoreWithDepth:
+    def test_higher_depth_overwrites(self):
+        tt = TranspositionTable()
+        tt.store(1, 0.1, 0.5, (0, 0), depth=1)
+        tt.store(1, 0.3, 0.3, (1, 1), depth=3)
+        lb, ub, bm = tt.lookup(1)
+        assert lb == pytest.approx(0.3)
+        assert ub == pytest.approx(0.3)
+        assert bm == (1, 1)
+
+    def test_lower_depth_does_not_overwrite(self):
+        tt = TranspositionTable()
+        tt.store(1, 0.3, 0.3, (1, 1), depth=3)
+        tt.store(1, 0.1, 0.5, (0, 0), depth=1)
+        lb, ub, bm = tt.lookup(1)
+        assert lb == pytest.approx(0.3)
+        assert bm == (1, 1)
+
+    def test_equal_depth_overwrites(self):
+        tt = TranspositionTable()
+        tt.store(1, 0.1, 0.5, (0, 0), depth=2)
+        tt.store(1, 0.3, 0.3, (1, 1), depth=2)
+        lb, ub, bm = tt.lookup(1)
+        assert lb == pytest.approx(0.3)
+        assert bm == (1, 1)
+
+
+class TestDepthOf:
+    def test_miss_returns_negative_one(self):
+        assert TranspositionTable().depth_of(99) == -1
+
+    def test_stored_depth_returned(self):
+        tt = TranspositionTable()
+        tt.store(1, 0.0, 1.0, None, depth=5)
+        assert tt.depth_of(1) == 5
+
+    def test_default_depth_is_zero(self):
+        tt = TranspositionTable()
+        tt.store(1, 0.0, 1.0, None)
+        assert tt.depth_of(1) == 0
+
+
+class TestLookupAtDepth:
+    def test_miss_returns_none(self):
+        assert TranspositionTable().lookup_at_depth(42, 0) is None
+
+    def test_entry_at_exact_min_depth(self):
+        tt = TranspositionTable()
+        tt.store(1, 0.2, 0.8, (0, 1), depth=3)
+        assert tt.lookup_at_depth(1, 3) == (pytest.approx(0.2), pytest.approx(0.8), (0, 1))
+
+    def test_entry_above_min_depth(self):
+        tt = TranspositionTable()
+        tt.store(1, 0.2, 0.8, (0, 1), depth=5)
+        assert tt.lookup_at_depth(1, 3) is not None
+
+    def test_entry_below_min_depth_returns_none(self):
+        tt = TranspositionTable()
+        tt.store(1, 0.2, 0.8, (0, 1), depth=1)
+        assert tt.lookup_at_depth(1, 3) is None

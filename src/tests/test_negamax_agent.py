@@ -10,6 +10,7 @@ from src.core.types import Player
 from src.tests.test_helper import (
     PUZZLE_3X3,
     PUZZLE_4X4,
+    PUZZLE_4X4_BLOCK,
     PUZZLE_5X5,
     fresh_state,
     state_with_moves,
@@ -174,6 +175,12 @@ class TestActBlockingMove:
     def test_blocks_opponent_diagonal_win(self):
         state = state_with_moves([(0, 2), (0, 0), (1, 2), (1, 1)])
         assert NegamaxAgent(max_depth=9).act(state) == (2, 2)
+
+    def test_4x4_o_blocks_x_column(self):
+        state = state_with_moves(
+            PUZZLE_4X4_BLOCK.moves, PUZZLE_4X4_BLOCK.n, PUZZLE_4X4_BLOCK.k
+        )
+        assert NegamaxAgent(max_depth=PUZZLE_4X4_BLOCK.n ** 2).act(state) == PUZZLE_4X4_BLOCK.best_move
 
 
 class TestPrefersFasterWin:
