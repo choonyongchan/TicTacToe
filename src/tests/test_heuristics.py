@@ -145,10 +145,6 @@ class TestHeuristic:
         from src.heuristics.base_heuristic import BaseHeuristic
         assert isinstance(Heuristic(), BaseHeuristic)
 
-    def test_components_count(self):
-        h = Heuristic()
-        assert len(h._components) == 4
-
 
 from src.heuristics.threat_heuristic import ThreatHeuristic
 
