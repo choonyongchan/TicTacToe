@@ -139,6 +139,15 @@ class TestNegamaxTtDepthLimited:
 
 
 class TestActWinningMove:
+    def test_takes_immediate_win_gap_row(self):
+        # X . X  ← X to move, gap at (0,1) completes row 0 (k=3)
+        # O . O
+        # . . .
+        # moves: X(0,0), O(1,0), X(0,2), O(1,2) → X's turn
+        state = state_with_moves([(0, 0), (1, 0), (0, 2), (1, 2)])
+        agent = MTDfIDAgent(9)
+        assert agent.act(state) == (0, 1)
+
     def test_takes_immediate_win_row(self):
         # X X .  → X plays (0, 2) to complete row 0
         # O O .

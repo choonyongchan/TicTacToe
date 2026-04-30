@@ -6,6 +6,7 @@ from src.core.transposition_table import TranspositionTable
 from src.core.types import NEGATIVE_INFINITY
 from src.heuristics.base_heuristic import BaseHeuristic
 from src.heuristics.heuristic import Heuristic
+from src.core.forced_move import detect
 
 
 class MTDfIDAgent(BaseAgent):
@@ -16,6 +17,9 @@ class MTDfIDAgent(BaseAgent):
         self._heuristic: BaseHeuristic = Heuristic()
 
     def act(self, state: State) -> tuple[int, int]:
+        forced = detect(state)
+        if forced is not None:
+            return forced
         tt = TranspositionTable()
         f = 0.0
         for depth in range(1, self._max_depth + 1):
@@ -56,7 +60,7 @@ class MTDfIDAgent(BaseAgent):
 
         if state.is_terminal():
             g = -self._terminal_score(state)
-            tt.store(h, g, g, None, depth)
+            tt.store_symmetric(state._hashes, g, g, None, state.board.n, depth)
             return g
 
         if depth == 0:
@@ -88,7 +92,7 @@ class MTDfIDAgent(BaseAgent):
         else:
             lb = ub = g
 
-        tt.store(h, lb, ub, best_move, depth)
+        tt.store_symmetric(state._hashes, lb, ub, best_move, state.board.n, depth)
         return g
 
     def _mtdf(
