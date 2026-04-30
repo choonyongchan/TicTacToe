@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.agents.base_agent import BaseAgent
-from src.core.forced_move import detect
+from src.core.forced_move import ForcedMove
 from src.core.state import State
 from src.core.transposition_table import TranspositionTable
 from src.core.types import NEGATIVE_INFINITY
@@ -17,7 +17,7 @@ class MTDfIDAgent(BaseAgent):
         self._heuristic: BaseHeuristic = Heuristic()
 
     def act(self, state: State) -> tuple[int, int]:
-        forced = detect(state)
+        forced = ForcedMove.detect(state)
         if forced is not None:
             return forced
         tt = TranspositionTable()
