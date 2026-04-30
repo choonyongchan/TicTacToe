@@ -3,8 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from src.core.state import State
-
-_DIRECTIONS = ((0, 1), (1, 0), (1, 1), (1, -1))
+from src.core.types import DIRECTIONS
 
 
 def detect(state: State) -> tuple[int, int] | None:
@@ -23,7 +22,7 @@ def detect(state: State) -> tuple[int, int] | None:
 def _find_threat(
     grid: np.ndarray, n: int, k: int, player: int, opponent: int
 ) -> tuple[int, int] | None:
-    for dr, dc in _DIRECTIONS:
+    for dr, dc in DIRECTIONS:
         for r in range(n):
             for c in range(n):
                 end_r = r + dr * (k - 1)
@@ -43,7 +42,7 @@ def _find_threat(
                             blocked = True
                             break
                         empty_pos = (cr, cc)
-                    else:
+                    elif val == opponent:
                         blocked = True
                         break
                 if not blocked and player_count == k - 1 and empty_pos is not None:
