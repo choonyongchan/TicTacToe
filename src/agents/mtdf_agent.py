@@ -63,7 +63,7 @@ class MTDfAgent(BaseAgent):
 
         if state.is_terminal():
             g = -self._terminal_score(state)
-            tt.store(h, g, g, None)
+            tt.store_symmetric(state._hashes, g, g, None, state.board.n)
             return g
 
         g = NEGATIVE_INFINITY
@@ -93,7 +93,7 @@ class MTDfAgent(BaseAgent):
         else:
             lb = ub = g
 
-        tt.store(h, lb, ub, best_move)
+        tt.store_symmetric(state._hashes, lb, ub, best_move, state.board.n)
         return g
 
     def _mtdf(self, state: State, f: float, tt: TranspositionTable) -> float:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .manipulator import Manipulator
+
 
 class TranspositionTable:
     def __init__(self) -> None:
@@ -41,6 +43,21 @@ class TranspositionTable:
 
     def depth_of(self, key: int) -> int:
         return self._depths.get(key, -1)
+
+    def store_symmetric(
+        self,
+        hashes: list[int],
+        lower: float,
+        upper: float,
+        best_move: tuple[int, int] | None,
+        n: int,
+        depth: int = 0,
+    ) -> None:
+        assert len(hashes) == Manipulator.TRANSFORM_COUNT
+        transform_moves = Manipulator.all_transform_moves(best_move, n)
+        assert len(transform_moves) == Manipulator.TRANSFORM_COUNT
+        for key, t_move in zip(hashes, transform_moves):
+            self.store(key, lower, upper, t_move, depth)
 
     def __len__(self) -> int:
         return len(self._table)
