@@ -214,3 +214,41 @@ class TestMTDfIDAgentHeuristicIntegration:
         move = agent.act(state)
         # (0,2) completes the row to length 3 = win for k=3. Agent must take it.
         assert move == (0, 2)
+
+
+from src.heuristics.window_scorer_heuristic import WindowScorerHeuristic
+
+
+class TestWindowScorerHeuristic:
+    def test_empty_board_returns_zero(self):
+        h = WindowScorerHeuristic()
+        assert h.evaluate(fresh_state(3, 3)) == pytest.approx(0.0)
+
+    def test_result_in_bounds(self):
+        state = state_with_moves([(0, 0), (0, 1), (1, 0), (1, 1)], n=5, k=3)
+        h = WindowScorerHeuristic()
+        assert -1.0 <= h.evaluate(state) <= 1.0
+
+    def test_current_player_threat_returns_positive(self):
+        # X:(0,0),(0,1) → row window has k-1=2 X pieces + 1 empty. O at corners. Current=X.
+        state = state_with_moves([(0, 0), (3, 3), (0, 1), (3, 0)], n=4, k=3)
+        h = WindowScorerHeuristic()
+        assert h.evaluate(state) > 0.0
+
+    def test_opponent_threat_returns_negative(self):
+        # O:(0,0),(0,1) row threat; X at far corners. Current=X.
+        state = state_with_moves([(3, 3), (0, 0), (3, 0), (0, 1)], n=4, k=3)
+        h = WindowScorerHeuristic()
+        assert h.evaluate(state) < 0.0
+
+    def test_gap_threat_at_edge_scores_positive(self):
+        # X at (0,0) and (0,2), k=3: window [X,_,X] has m=2, e=1 → WIN_THREAT_SCORE.
+        # Even though left outside is out-of-bounds (open_ends formula would score 0),
+        # WIN_THREAT_SCORE path fires regardless of openness. O at bottom corners. Current=X.
+        state = state_with_moves([(0, 0), (3, 3), (0, 2), (3, 0)], n=4, k=3)
+        h = WindowScorerHeuristic()
+        assert h.evaluate(state) > 0.0
+
+    def test_implements_base_heuristic(self):
+        from src.heuristics.base_heuristic import BaseHeuristic
+        assert isinstance(WindowScorerHeuristic(), BaseHeuristic)
