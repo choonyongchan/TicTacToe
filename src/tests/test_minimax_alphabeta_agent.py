@@ -21,7 +21,7 @@ class TestMinimaxAlphaBetaAgentInit:
 
     def test_maximizer_stored(self):
         agent = MinimaxAlphaBetaAgent(Player.O)
-        assert agent.maximizer == Player.O
+        assert agent._maximizer == Player.O
 
 
 class TestTerminalScore:

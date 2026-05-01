@@ -1,14 +1,14 @@
-from src.agents.base_agent import BaseAgent
+from src.agents.minimax_alphabeta_agent import MinimaxAlphaBetaAgent
+from src.agents.minimax_base_agent import MinimaxBaseAgent
 from src.core.state import State
 from src.core.types import INFINITY, NEGATIVE_INFINITY, Player
 
 
-class MinimaxRewardsAlphaBetaAgent(BaseAgent):
+class MinimaxRewardsAlphaBetaAgent(MinimaxAlphaBetaAgent):
     def __init__(self, maximizer: Player, max_depth: int) -> None:
-        super().__init__("MinimaxRewardsAlphaBetaAgent")
-        self.maximizer = maximizer
+        MinimaxBaseAgent.__init__(self, "MinimaxRewardsAlphaBetaAgent", maximizer)
         # epsilon = 1/(max_depth+1) guarantees win>0 and loss<0 at any reachable depth
-        self._epsilon = 1.0 / (max_depth + 1)
+        self._epsilon: float = 1.0 / (max_depth + 1)
 
     def act(self, state: State) -> tuple[int, int]:
         best_score = NEGATIVE_INFINITY
@@ -28,7 +28,7 @@ class MinimaxRewardsAlphaBetaAgent(BaseAgent):
     def _terminal_score(self, state: State) -> float:
         winner = state.winner()
         depth = len(state.history)
-        if winner == self.maximizer:
+        if winner == self._maximizer:
             return 1.0 - self._epsilon * depth
         if winner is not None:
             return -1.0 + self._epsilon * depth
@@ -37,7 +37,7 @@ class MinimaxRewardsAlphaBetaAgent(BaseAgent):
     def _minimax(self, state: State, alpha: float, beta: float) -> float:
         if state.is_terminal():
             return self._terminal_score(state)
-        if state.current_player == self.maximizer:
+        if state.current_player == self._maximizer:
             return self._maximize(state, alpha, beta)
         return self._minimize(state, alpha, beta)
 

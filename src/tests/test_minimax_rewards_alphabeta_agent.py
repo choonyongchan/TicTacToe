@@ -26,7 +26,7 @@ class TestInit:
 
     def test_maximizer_stored(self):
         agent = MinimaxRewardsAlphaBetaAgent(Player.O, max_depth=9)
-        assert agent.maximizer == Player.O
+        assert agent._maximizer == Player.O
 
     def test_default_max_depth(self):
         agent = MinimaxRewardsAlphaBetaAgent(Player.X, max_depth=9)

@@ -1,12 +1,11 @@
-from src.agents.base_agent import BaseAgent
+from src.agents.minimax_base_agent import MinimaxBaseAgent
 from src.core.state import State
 from src.core.types import Player
 
 
-class MinimaxAlphaBetaAgent(BaseAgent):
+class MinimaxAlphaBetaAgent(MinimaxBaseAgent):
     def __init__(self, maximizer: Player) -> None:
-        super().__init__("MinimaxAlphaBetaAgent")
-        self.maximizer = maximizer
+        super().__init__("MinimaxAlphaBetaAgent", maximizer)
 
     def act(self, state: State) -> tuple[int, int]:
         best_score = -2
@@ -25,7 +24,7 @@ class MinimaxAlphaBetaAgent(BaseAgent):
 
     def _terminal_score(self, state: State) -> int:
         winner = state.winner()
-        if winner == self.maximizer:
+        if winner == self._maximizer:
             return 1
         if winner is not None:
             return -1
@@ -34,7 +33,7 @@ class MinimaxAlphaBetaAgent(BaseAgent):
     def _minimax(self, state: State, alpha: int, beta: int) -> int:
         if state.is_terminal():
             return self._terminal_score(state)
-        if state.current_player == self.maximizer:
+        if state.current_player == self._maximizer:
             return self._maximize(state, alpha, beta)
         return self._minimize(state, alpha, beta)
 
