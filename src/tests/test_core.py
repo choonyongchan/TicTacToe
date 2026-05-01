@@ -518,3 +518,59 @@ class TestSpecVerification:
         s.apply(0, 2)  # X wins (3 in a row)
         assert s.is_terminal() is True
         assert s.winner() is Player.X
+
+
+# ---------------------------------------------------------------------------
+# board.py — get_candidate_cells
+# ---------------------------------------------------------------------------
+
+
+class TestGetCandidateCells:
+    def test_empty_board_returns_center(self):
+        b = Board(5, 3)
+        cells = b.get_candidate_cells([], d=1)
+        assert cells == [(2, 2)]
+
+    def test_empty_board_even_n_returns_center(self):
+        b = Board(4, 4)
+        cells = b.get_candidate_cells([], d=2)
+        assert cells == [(2, 2)]
+
+    def test_single_stone_candidates_are_chebyshev_ring(self):
+        b = Board(10, 5)
+        d = 3
+        history = [(5, 5)]
+        candidates = set(b.get_candidate_cells(history, d=d))
+        expected = {
+            (r, c)
+            for r in range(10)
+            for c in range(10)
+            if max(abs(r - 5), abs(c - 5)) <= d and b.is_empty(r, c)
+        }
+        assert candidates == expected
+
+    def test_candidates_subset_of_empty_cells(self):
+        b = Board(10, 5)
+        b.set(3, 3, Player.X)
+        b.set(4, 4, Player.O)
+        history = [(3, 3), (4, 4)]
+        candidates = set(b.get_candidate_cells(history, d=3))
+        empty = set(b.get_empty_cells())
+        assert candidates <= empty
+
+    def test_no_occupied_cell_in_candidates(self):
+        b = Board(10, 5)
+        b.set(3, 3, Player.X)
+        b.set(4, 4, Player.O)
+        history = [(3, 3), (4, 4)]
+        candidates = b.get_candidate_cells(history, d=3)
+        assert (3, 3) not in candidates
+        assert (4, 4) not in candidates
+
+    def test_small_board_fallback_to_empty_cells(self):
+        # 4x4 with d=2: (2*2+1)^2=25 > 16=n^2, always falls back
+        b = Board(4, 4)
+        b.set(0, 0, Player.X)
+        history = [(0, 0)]
+        candidates = set(b.get_candidate_cells(history, d=2))
+        assert candidates == set(b.get_empty_cells())

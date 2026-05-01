@@ -16,6 +16,7 @@ class State:
         self.visited: set[int] = set()
         self._hash: int = 0
         self._hashes: list[int] = [0] * Manipulator.TRANSFORM_COUNT
+        self.candidate_d: int = max(1, self.board.k - 2)
 
     def apply(self, row: int, col: int) -> None:
         self.board.set(row, col, self.current_player)

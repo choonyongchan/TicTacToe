@@ -30,6 +30,22 @@ class Board:
         rows, cols = np.where(self.board == Player._)
         return list(zip(rows.tolist(), cols.tolist()))
 
+    def get_candidate_cells(
+        self, history: list[tuple[int, int]], d: int
+    ) -> list[tuple[int, int]]:
+        if not history:
+            return [(self.n // 2, self.n // 2)]
+        if self.n * self.n - len(history) <= (2 * d + 1) ** 2:
+            return self.get_empty_cells()
+        candidates: set[tuple[int, int]] = set()
+        for pr, pc in history:
+            for dr in range(-d, d + 1):
+                for dc in range(-d, d + 1):
+                    r, c = pr + dr, pc + dc
+                    if self.is_in_bounds(r, c) and self.is_empty(r, c):
+                        candidates.add((r, c))
+        return list(candidates)
+
     def is_in_bounds(self, row: int, col: int) -> bool:
         return 0 <= row < self.n and 0 <= col < self.n
 

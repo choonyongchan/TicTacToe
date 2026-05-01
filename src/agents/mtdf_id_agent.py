@@ -69,7 +69,7 @@ class MTDfIDAgent(BaseAgent):
         g = NEGATIVE_INFINITY
         best_move: tuple[int, int] | None = None
 
-        for row, col in state.board.get_empty_cells():
+        for row, col in state.board.get_candidate_cells(state.history, state.candidate_d):
             state.apply(row, col)
             score = -self._negamax_tt(state, -beta, -alpha, depth - 1, tt)
             state.undo()
