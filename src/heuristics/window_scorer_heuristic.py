@@ -1,19 +1,16 @@
 from __future__ import annotations
 
-import math
-
 import numpy as np
 
 from src.heuristics.base_heuristic import BaseHeuristic
+from src.heuristics.heuristic_utils import DIRECTIONS, tanh_normalize
 from src.core.state import State
-
-_DIRECTIONS = ((0, 1), (1, 0), (1, 1), (1, -1))
 
 
 def _score_windows(grid: np.ndarray, n: int, k: int, player_val: int, opp_val: int) -> float:
     win_threat = float(4 ** (k - 1))
     total = 0.0
-    for dr, dc in _DIRECTIONS:
+    for dr, dc in DIRECTIONS:
         for r in range(n):
             for c in range(n):
                 end_r = r + (k - 1) * dr
@@ -58,6 +55,4 @@ class WindowScorerHeuristic(BaseHeuristic):
         opp = int(state.current_player.opponent())
         score_me = _score_windows(board.board, n, k, me, opp)
         score_opp = _score_windows(board.board, n, k, opp, me)
-        raw = score_me - score_opp
-        scale = 2.0 * float(4 ** (k - 2))
-        return math.tanh(raw / scale)
+        return tanh_normalize(score_me, score_opp, k)

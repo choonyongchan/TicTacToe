@@ -3,15 +3,14 @@ from __future__ import annotations
 import numpy as np
 
 from src.heuristics.base_heuristic import BaseHeuristic
+from src.heuristics.heuristic_utils import DIRECTIONS
 from src.core.state import State
-
-_DIRECTIONS = ((0, 1), (1, 0), (1, 1), (1, -1))
 
 
 def _count_threats_at(grid: np.ndarray, n: int, k: int, row: int, col: int, player_val: int) -> int:
     """Count directions forming a threat (run length >= k-1, >= 1 open end) through (row, col)."""
     count = 0
-    for dr, dc in _DIRECTIONS:
+    for dr, dc in DIRECTIONS:
         fwd = 0
         r, c = row + dr, col + dc
         while 0 <= r < n and 0 <= c < n and grid[r, c] == player_val:

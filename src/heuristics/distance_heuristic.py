@@ -3,15 +3,14 @@ from __future__ import annotations
 import numpy as np
 
 from src.heuristics.base_heuristic import BaseHeuristic
+from src.heuristics.heuristic_utils import DIRECTIONS
 from src.core.state import State
-
-_DIRECTIONS = ((0, 1), (1, 0), (1, 1), (1, -1))
 
 
 def _min_gap(grid: np.ndarray, n: int, k: int, player_val: int, opp_val: int) -> int:
     """Minimum moves player still needs to complete any unblocked k-window."""
     min_g = k
-    for dr, dc in _DIRECTIONS:
+    for dr, dc in DIRECTIONS:
         for r in range(n):
             for c in range(n):
                 end_r = r + (k - 1) * dr
