@@ -1,24 +1,18 @@
 from __future__ import annotations
 
-from src.agents.base_agent import BaseAgent
+from src.agents.negamax_base_agent import NegamaxBaseAgent
 from src.core.state import State
 from src.core.types import NEGATIVE_INFINITY
 
 
-class BNSAgent(BaseAgent):
+class BNSAgent(NegamaxBaseAgent):
     def __init__(self, max_depth: int) -> None:
-        super().__init__("BNSAgent")
-        self._epsilon = 1.0 / (max_depth + 1)
+        super().__init__("BNSAgent", max_depth)
 
     def act(self, state: State) -> tuple[int, int]:
         best = self._bns(state, -1.0, 1.0)
         assert best is not None
         return best
-
-    def _terminal_score(self, state: State) -> float:
-        if state.winner() is None:
-            return 0.0
-        return 1.0 - self._epsilon * len(state.history)
 
     def _alphabeta(self, state: State, alpha: float, beta: float) -> float:
         if state.is_terminal():
@@ -36,13 +30,13 @@ class BNSAgent(BaseAgent):
                 alpha = best
         return best
 
-    def __heuristics(self, alpha: float, beta: float) -> float:
+    def _heuristics(self, alpha: float, beta: float) -> float:
         return (alpha + beta) / 2
 
     def _bns(self, state: State, alpha: float, beta: float) -> tuple[int, int] | None:
         best_node: tuple[int, int] | None = None
         while True:
-            test = self.__heuristics(alpha, beta)
+            test = self._heuristics(alpha, beta)
             better_count = 0
             for row, col in state.board.get_empty_cells():
                 state.apply(row, col)

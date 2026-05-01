@@ -1,12 +1,11 @@
-from src.agents.base_agent import BaseAgent
+from src.agents.negamax_base_agent import NegamaxBaseAgent
 from src.core.state import State
 from src.core.types import NEGATIVE_INFINITY
 
 
-class NegascoutAgent(BaseAgent):
+class NegascoutAgent(NegamaxBaseAgent):
     def __init__(self, max_depth: int) -> None:
-        super().__init__("NegascoutAgent")
-        self._epsilon = 1.0 / (max_depth + 1)
+        super().__init__("NegascoutAgent", max_depth)
 
     def act(self, state: State) -> tuple[int, int]:
         best_score = NEGATIVE_INFINITY
@@ -31,11 +30,6 @@ class NegascoutAgent(BaseAgent):
 
         assert best_move is not None
         return best_move
-
-    def _terminal_score(self, state: State) -> float:
-        if state.winner() is None:
-            return 0.0
-        return 1.0 - self._epsilon * len(state.history)
 
     def _negascout(self, state: State, alpha: float, beta: float) -> float:
         if state.is_terminal():

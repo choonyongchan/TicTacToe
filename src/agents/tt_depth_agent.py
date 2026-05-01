@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.agents.base_agent import BaseAgent
+from src.agents.negamax_base_agent import NegamaxBaseAgent
 from src.core.state import State
 from src.core.transposition_table import TranspositionTable
 from src.core.types import NEGATIVE_INFINITY
@@ -8,17 +8,11 @@ from src.heuristics.base_heuristic import BaseHeuristic
 from src.heuristics.heuristic import Heuristic
 
 
-class TTDepthAgent(BaseAgent):
+class TTDepthAgent(NegamaxBaseAgent):
     def __init__(self, name: str, max_depth: int) -> None:
-        super().__init__(name)
-        self._epsilon = 1.0 / (max_depth + 1)
+        super().__init__(name, max_depth)
         self._max_depth = max_depth
         self._heuristic: BaseHeuristic = Heuristic()
-
-    def _terminal_score(self, state: State) -> float:
-        if state.winner() is None:
-            return 0.0
-        return 1.0 - self._epsilon * len(state.history)
 
     def _negamax_tt(
         self,

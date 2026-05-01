@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from src.agents.base_agent import BaseAgent
+from src.agents.negamax_base_agent import NegamaxBaseAgent
 from src.core.state import State
 from src.core.transposition_table import TranspositionTable
 from src.core.types import NEGATIVE_INFINITY
 
 
-class MTDfAgent(BaseAgent):
+class MTDfAgent(NegamaxBaseAgent):
     def __init__(self, max_depth: int) -> None:
-        super().__init__("MTDfAgent")
-        self._epsilon = 1.0 / (max_depth + 1)
+        super().__init__("MTDfAgent", max_depth)
 
     def act(self, state: State) -> tuple[int, int]:
         tt = TranspositionTable()
@@ -29,11 +28,6 @@ class MTDfAgent(BaseAgent):
                 best_move = (row, col)
         assert best_move is not None
         return best_move
-
-    def _terminal_score(self, state: State) -> float:
-        if state.winner() is None:
-            return 0.0
-        return 1.0 - self._epsilon * len(state.history)
 
     def _negamax_tt(
         self,
