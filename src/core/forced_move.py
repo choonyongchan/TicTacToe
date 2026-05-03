@@ -9,7 +9,7 @@ from src.core.types import DIRECTIONS
 class ForcedMove:
     @staticmethod
     def detect(state: State) -> tuple[int, int] | None:
-        grid = state.board.board
+        grid = state.board._grid
         n = state.board.n
         k = state.board.k
         cur = int(state.current_player)

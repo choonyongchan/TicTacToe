@@ -58,19 +58,19 @@ class TestTypes:
 class TestBoardCreate:
     def test_create_shape(self):
         b = Board(3, 3)
-        assert b.board.shape == (3, 3)
+        assert b._grid.shape == (3, 3)
 
     def test_create_dtype(self):
         b = Board(3, 3)
-        assert b.board.dtype == np.uint8
+        assert b._grid.dtype == np.uint8
 
     def test_create_all_empty(self):
         b = Board(3, 3)
-        assert (b.board == Player._).all()
+        assert (b._grid == Player._).all()
 
     def test_create_nxn_shape(self):
         b = Board(5, 3)
-        assert b.board.shape == (5, 5)
+        assert b._grid.shape == (5, 5)
 
     def test_board_stores_n_and_k(self):
         b = Board(4, 3)
@@ -83,7 +83,7 @@ class TestBoardReset:
         b = Board(3, 3)
         b.set(0, 0, Player.X)
         b.reset()
-        assert (b.board == Player._).all()
+        assert (b._grid == Player._).all()
 
 
 class TestBoardGetSet:
@@ -130,7 +130,7 @@ class TestBoardIsFull:
         for r in range(3):
             for c in range(3):
                 b.set(r, c, Player.X)
-        b.board[2, 2] = Player._
+        b._grid[2, 2] = Player._
         assert b.is_full() is False
 
 
@@ -246,7 +246,7 @@ class TestBoardRender:
 class TestStateInit:
     def test_initial_board_empty(self):
         s = State()
-        assert (s.board.board == Player._).all()
+        assert (s.board._grid == Player._).all()
 
     def test_initial_player_x(self):
         s = State()
@@ -258,7 +258,7 @@ class TestStateInit:
 
     def test_initial_state_count_zero(self):
         s = State()
-        assert s.state_count == 0
+        assert s._state_count == 0
 
     def test_initial_hash_zero(self):
         s = State()
@@ -266,7 +266,7 @@ class TestStateInit:
 
     def test_state_nxn(self):
         s = State(n=4, k=3)
-        assert s.board.board.shape == (4, 4)
+        assert s.board._grid.shape == (4, 4)
         assert s.board.n == 4
         assert s.board.k == 3
 
@@ -290,7 +290,7 @@ class TestStateApply:
     def test_apply_increments_state_count_first_move(self):
         s = State()
         s.apply(0, 0)
-        assert s.state_count == 1
+        assert s._state_count == 1
 
     def test_apply_updates_hash(self):
         s = State()
@@ -305,7 +305,7 @@ class TestStateApply:
         s.undo()
         s.apply(0, 0)
         # visited already has this hash, state_count stays at 1
-        assert s.state_count == 1
+        assert s._state_count == 1
 
     def test_apply_multiple_moves(self):
         s = State()
@@ -345,10 +345,10 @@ class TestStateUndo:
     def test_undo_does_not_decrement_state_count(self):
         s = State()
         s.apply(0, 0)
-        assert s.state_count == 1
+        assert s._state_count == 1
         s.undo()
         # state_count only grows — undo does not remove from visited
-        assert s.state_count == 1
+        assert s._state_count == 1
 
     def test_undo_multiple_moves(self):
         s = State()
@@ -428,7 +428,7 @@ class TestStateReset:
         s = State()
         s.apply(0, 0)
         s.reset()
-        assert (s.board.board == Player._).all()
+        assert (s.board._grid == Player._).all()
 
     def test_reset_player_is_x(self):
         s = State()
@@ -446,13 +446,13 @@ class TestStateReset:
         s = State()
         s.apply(0, 0)
         s.reset()
-        assert s.state_count == 0
+        assert s._state_count == 0
 
     def test_reset_clears_visited(self):
         s = State()
         s.apply(0, 0)
         s.reset()
-        assert len(s.visited) == 0
+        assert len(s._visited) == 0
 
     def test_reset_clears_hash(self):
         s = State()
@@ -482,10 +482,10 @@ class TestSpecVerification:
         """Spec v3: Apply then undo, board unchanged and state_count stays at 1."""
         s = State()
         s.apply(1, 1)
-        assert s.state_count == 1
+        assert s._state_count == 1
         s.undo()
-        assert (s.board.board == Player._).all()
-        assert s.state_count == 1  # undo never removes from visited
+        assert (s.board._grid == Player._).all()
+        assert s._state_count == 1  # undo never removes from visited
 
     def test_two_paths_same_hash(self):
         """Spec v4: Two paths to the same board produce the same _hash."""

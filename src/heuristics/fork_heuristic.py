@@ -51,7 +51,7 @@ class ForkHeuristic(BaseHeuristic):
             return 0.0
         me = int(state.current_player)
         opp = int(state.current_player.opponent())
-        grid = board.board.copy()
+        grid = board._grid.copy()
         n, k = board.n, board.k
         fork_me = sum(1 for r, c in empty_cells if _is_fork(grid, n, k, r, c, me))
         fork_opp = sum(1 for r, c in empty_cells if _is_fork(grid, n, k, r, c, opp))

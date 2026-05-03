@@ -53,6 +53,6 @@ class WindowScorerHeuristic(BaseHeuristic):
             return 0.0
         me = int(state.current_player)
         opp = int(state.current_player.opponent())
-        score_me = _score_windows(board.board, n, k, me, opp)
-        score_opp = _score_windows(board.board, n, k, opp, me)
+        score_me = _score_windows(board._grid, n, k, me, opp)
+        score_opp = _score_windows(board._grid, n, k, opp, me)
         return tanh_normalize(score_me, score_opp, k)

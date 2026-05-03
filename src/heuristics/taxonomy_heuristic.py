@@ -45,6 +45,6 @@ class TaxonomyHeuristic(BaseHeuristic):
             return 0.0
         me = int(state.current_player)
         opp = int(state.current_player.opponent())
-        score_me = _taxonomy_score(board.board, n, k, me)
-        score_opp = _taxonomy_score(board.board, n, k, opp)
+        score_me = _taxonomy_score(board._grid, n, k, me)
+        score_opp = _taxonomy_score(board._grid, n, k, opp)
         return tanh_normalize(score_me, score_opp, k)

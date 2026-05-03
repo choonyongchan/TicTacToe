@@ -12,8 +12,8 @@ class State:
         self._zobrist = ZobristTable(n)
         self.current_player: Player = Player.X
         self.history: list[tuple[int, int]] = []
-        self.state_count: int = 0
-        self.visited: set[int] = set()
+        self._state_count: int = 0
+        self._visited: set[int] = set()
         self._hash: int = 0
         self._hashes: list[int] = [0] * Manipulator.TRANSFORM_COUNT
         self.candidate_d: int = max(1, self.board.k - 2)
@@ -27,9 +27,9 @@ class State:
             Manipulator.all_transform_moves((row, col), self.board.n)
         ):
             self._hashes[i] ^= int(self._zobrist._table[tr, tc, player_val])
-        if self._hash not in self.visited:
-            self.visited.add(self._hash)
-            self.state_count += 1
+        if self._hash not in self._visited:
+            self._visited.add(self._hash)
+            self._state_count += 1
         self.current_player = self.current_player.opponent()
 
     def undo(self) -> None:
@@ -62,7 +62,7 @@ class State:
         self.board.reset()
         self.current_player = Player.X
         self.history = []
-        self.state_count = 0
-        self.visited = set()
+        self._state_count = 0
+        self._visited = set()
         self._hash = 0
         self._hashes = [0] * Manipulator.TRANSFORM_COUNT

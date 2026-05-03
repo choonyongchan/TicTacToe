@@ -139,7 +139,7 @@ def test_symmetry_hashes_full_end_to_end():
     n = state.board.n
 
     # 1. Compute all 8 board transforms from the current board array.
-    board_transforms = Manipulator.all_transforms(state.board.board)
+    board_transforms = Manipulator.all_transforms(state.board._grid)
     assert len(board_transforms) == Manipulator.TRANSFORM_COUNT
 
     # 2. Compute expected hashes from scratch for each transform.
@@ -175,7 +175,7 @@ def test_symmetry_hashes_full_end_to_end():
 
     # 6. Undo must restore _hashes correctly.
     state.undo()
-    board_after_undo = Manipulator.all_transforms(state.board.board)
+    board_after_undo = Manipulator.all_transforms(state.board._grid)
     expected_after_undo = [
         _compute_hash_from_board(state._zobrist, t) for t in board_after_undo
     ]

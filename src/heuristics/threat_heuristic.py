@@ -42,8 +42,8 @@ class ThreatHeuristic(BaseHeuristic):
             return 0.0
         me = int(state.current_player)
         opp = int(state.current_player.opponent())
-        threats_me = _count_immediate_threats(board.board, n, k, me, opp)
-        threats_opp = _count_immediate_threats(board.board, n, k, opp, me)
+        threats_me = _count_immediate_threats(board._grid, n, k, me, opp)
+        threats_opp = _count_immediate_threats(board._grid, n, k, opp, me)
         total = threats_me + threats_opp
         if total == 0:
             return 0.0

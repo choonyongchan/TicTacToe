@@ -9,25 +9,25 @@ class Board:
     def __init__(self, n: int, k: int) -> None:
         self.n = n
         self.k = k
-        self.board: Board2D = np.zeros((n, n), dtype=np.uint8)
+        self._grid: Board2D = np.zeros((n, n), dtype=np.uint8)
 
     def reset(self) -> None:
-        self.board[:] = Player._
+        self._grid[:] = Player._
 
     def get(self, row: int, col: int) -> Player:
-        return Player(int(self.board[row, col]))
+        return Player(int(self._grid[row, col]))
 
     def set(self, row: int, col: int, player: Player) -> None:
-        self.board[row, col] = int(player)
+        self._grid[row, col] = int(player)
 
     def is_empty(self, row: int, col: int) -> bool:
-        return int(self.board[row, col]) == Player._
+        return int(self._grid[row, col]) == Player._
 
     def is_full(self) -> bool:
-        return not np.any(self.board == Player._)
+        return not np.any(self._grid == Player._)
 
     def get_empty_cells(self) -> list[tuple[int, int]]:
-        rows, cols = np.where(self.board == Player._)
+        rows, cols = np.where(self._grid == Player._)
         return list(zip(rows.tolist(), cols.tolist()))
 
     def get_candidate_cells(
@@ -54,14 +54,14 @@ class Board:
     ) -> int:
         count = 0
         r, c = row + dr, col + dc
-        while self.is_in_bounds(r, c) and int(self.board[r, c]) == player_val:
+        while self.is_in_bounds(r, c) and int(self._grid[r, c]) == player_val:
             count += 1
             r += dr
             c += dc
         return count
 
     def check_win(self, row: int, col: int) -> bool:
-        player_val = int(self.board[row, col])
+        player_val = int(self._grid[row, col])
         if player_val == Player._:
             return False
         for dr, dc in DIRECTIONS:
@@ -80,7 +80,7 @@ class Board:
         for r in range(self.n):
             row_parts = []
             for c in range(self.n):
-                sym = symbols[Player(int(self.board[r, c]))]
+                sym = symbols[Player(int(self._grid[r, c]))]
                 if row is not None and (r, c) == (row, col):
                     row_parts.append(f"[{sym}]")
                 else:

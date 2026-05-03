@@ -39,6 +39,6 @@ class DistanceHeuristic(BaseHeuristic):
             return 0.0
         me = int(state.current_player)
         opp = int(state.current_player.opponent())
-        dist_me = _min_gap(board.board, n, k, me, opp)
-        dist_opp = _min_gap(board.board, n, k, opp, me)
+        dist_me = _min_gap(board._grid, n, k, me, opp)
+        dist_opp = _min_gap(board._grid, n, k, opp, me)
         return max(-1.0, min(1.0, (dist_opp - dist_me) / (k - 1)))
