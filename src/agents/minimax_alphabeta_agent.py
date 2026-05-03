@@ -4,10 +4,20 @@ from src.core.types import Player
 
 
 class MinimaxAlphaBetaAgent(MinimaxBaseAgent):
+    """Exact minimax agent with alpha-beta pruning."""
+
     def __init__(self, maximizer: Player) -> None:
         super().__init__("MinimaxAlphaBetaAgent", maximizer)
 
     def act(self, state: State) -> tuple[int, int]:
+        """Return the exact best move via alpha-beta minimax.
+
+        Args:
+            state: Current game state.
+
+        Returns:
+            (row, col) of the best move for the maximizer.
+        """
         best_score = -2
         best_move: tuple[int, int] | None = None
         alpha = -2
@@ -23,6 +33,11 @@ class MinimaxAlphaBetaAgent(MinimaxBaseAgent):
         return best_move
 
     def _terminal_score(self, state: State) -> int:
+        """Return +1 for a maximizer win, -1 for a loss, 0 for a draw.
+
+        Args:
+            state: Terminal game state.
+        """
         winner = state.winner()
         if winner == self._maximizer:
             return 1
@@ -31,6 +46,16 @@ class MinimaxAlphaBetaAgent(MinimaxBaseAgent):
         return 0
 
     def _minimax(self, state: State, alpha: int, beta: int) -> int:
+        """Recursive alpha-beta minimax dispatch.
+
+        Args:
+            state: Current game state.
+            alpha: Best score the maximizer can guarantee.
+            beta: Best score the minimizer can guarantee.
+
+        Returns:
+            Score from the maximizer's perspective.
+        """
         if state.is_terminal():
             return self._terminal_score(state)
         if state.current_player == self._maximizer:
@@ -38,6 +63,13 @@ class MinimaxAlphaBetaAgent(MinimaxBaseAgent):
         return self._minimize(state, alpha, beta)
 
     def _maximize(self, state: State, alpha: int, beta: int) -> int:
+        """Return the maximum score reachable with alpha-beta pruning.
+
+        Args:
+            state: Current game state (maximizer's turn).
+            alpha: Current lower bound.
+            beta: Current upper bound.
+        """
         best = -2
         for row, col in state.board.get_empty_cells():
             state.apply(row, col)
@@ -52,6 +84,13 @@ class MinimaxAlphaBetaAgent(MinimaxBaseAgent):
         return best
 
     def _minimize(self, state: State, alpha: int, beta: int) -> int:
+        """Return the minimum score reachable with alpha-beta pruning.
+
+        Args:
+            state: Current game state (minimizer's turn).
+            alpha: Current lower bound.
+            beta: Current upper bound.
+        """
         best = 2
         for row, col in state.board.get_empty_cells():
             state.apply(row, col)

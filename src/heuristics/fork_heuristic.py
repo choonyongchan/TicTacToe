@@ -8,7 +8,19 @@ from src.core.state import State
 
 
 def _count_threats_at(grid: np.ndarray, n: int, k: int, row: int, col: int, player_val: int) -> int:
-    """Count directions forming a threat (run length >= k-1, >= 1 open end) through (row, col)."""
+    """Count directions forming a threat (run length >= k-1, >= 1 open end) through (row, col).
+
+    Args:
+        grid: Raw board array.
+        n: Board side length.
+        k: Win-condition run length.
+        row: Row of the cell to evaluate.
+        col: Column of the cell to evaluate.
+        player_val: Integer player value occupying (row, col).
+
+    Returns:
+        Number of threatening directions through this cell.
+    """
     count = 0
     for dr, dc in DIRECTIONS:
         fwd = 0
@@ -35,7 +47,16 @@ def _count_threats_at(grid: np.ndarray, n: int, k: int, row: int, col: int, play
 
 
 def _is_fork(grid: np.ndarray, n: int, k: int, row: int, col: int, player_val: int) -> bool:
-    """True if placing player_val at (row, col) creates >= 2 simultaneous threats."""
+    """True if placing player_val at (row, col) creates >= 2 simultaneous threats.
+
+    Args:
+        grid: Raw board array (mutated temporarily, then restored).
+        n: Board side length.
+        k: Win-condition run length.
+        row: Candidate row.
+        col: Candidate column.
+        player_val: Integer player value to test.
+    """
     grid[row, col] = player_val
     threats = _count_threats_at(grid, n, k, row, col, player_val)
     grid[row, col] = 0
@@ -43,7 +64,17 @@ def _is_fork(grid: np.ndarray, n: int, k: int, row: int, col: int, player_val: i
 
 
 class ForkHeuristic(BaseHeuristic):
+    """Heuristic counting fork moves (cells that create 2+ simultaneous threats)."""
+
     def evaluate(self, state: State) -> float:
+        """Return (fork_me - fork_opp) / total_empty, measuring fork advantage.
+
+        Args:
+            state: Current (non-terminal) game state.
+
+        Returns:
+            Score in [-1.0, 1.0]; positive favours the current player.
+        """
         board = state.board
         empty_cells = board.get_empty_cells()
         total_empty = len(empty_cells)

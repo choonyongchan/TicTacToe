@@ -7,10 +7,22 @@ from src.core.transposition_table import TranspositionTable
 
 
 class BNSIDAgent(TTDepthAgent):
+    """Iterative-deepening Best Node Search with a transposition table and forced-move detection."""
+
     def __init__(self, max_depth: int) -> None:
         super().__init__("BNSIDAgent", max_depth)
 
     def act(self, state: State) -> tuple[int, int]:
+        """Return the best move via iterative-deepening BNS.
+
+        Short-circuits with a forced move when one exists.
+
+        Args:
+            state: Current game state.
+
+        Returns:
+            (row, col) of the best move.
+        """
         forced = ForcedMove.detect(state)
         if forced is not None:
             return forced
@@ -31,6 +43,18 @@ class BNSIDAgent(TTDepthAgent):
         depth: int,
         tt: TranspositionTable,
     ) -> tuple[int, int] | None:
+        """Run BNS at a fixed depth using TT-backed negamax for child evaluations.
+
+        Args:
+            state: Current game state.
+            alpha: Initial lower bound.
+            beta: Initial upper bound.
+            depth: Search depth for child evaluations.
+            tt: Transposition table shared across iterative-deepening passes.
+
+        Returns:
+            (row, col) of the best move found, or None if no candidates exist.
+        """
         best_node: tuple[int, int] | None = None
         while True:
             test = (alpha + beta) / 2

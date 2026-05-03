@@ -8,7 +8,18 @@ from src.core.state import State
 
 
 def _min_gap(grid: np.ndarray, n: int, k: int, player_val: int, opp_val: int) -> int:
-    """Minimum moves player still needs to complete any unblocked k-window."""
+    """Minimum moves player still needs to complete any unblocked k-window.
+
+    Args:
+        grid: Raw board array.
+        n: Board side length.
+        k: Win-condition run length.
+        player_val: Integer value of the player to evaluate.
+        opp_val: Integer value of the opponent (blocks windows).
+
+    Returns:
+        Minimum number of empty cells the player must fill to complete a run.
+    """
     min_g = k
     for dr, dc in DIRECTIONS:
         for r in range(n):
@@ -32,7 +43,17 @@ def _min_gap(grid: np.ndarray, n: int, k: int, player_val: int, opp_val: int) ->
 
 
 class DistanceHeuristic(BaseHeuristic):
+    """Heuristic based on minimum moves remaining to win for each player."""
+
     def evaluate(self, state: State) -> float:
+        """Return (opponent_gap - my_gap) / (k-1), clamped to [-1, 1].
+
+        Args:
+            state: Current (non-terminal) game state.
+
+        Returns:
+            Score in [-1.0, 1.0]; positive favours the current player.
+        """
         board = state.board
         n, k = board.n, board.k
         if k <= 1:

@@ -8,7 +8,17 @@ from src.core.state import State
 
 
 def _taxonomy_score(grid: np.ndarray, n: int, k: int, player_val: int) -> float:
-    """Weighted sum of open/half-open maximal runs for player_val."""
+    """Weighted sum of open/half-open maximal runs for player_val.
+
+    Args:
+        grid: Raw board array.
+        n: Board side length.
+        k: Win-condition run length.
+        player_val: Integer player value to score.
+
+    Returns:
+        Raw weighted run score (un-normalised).
+    """
     total = 0.0
     for dr, dc in DIRECTIONS:
         for r in range(n):
@@ -38,7 +48,17 @@ def _taxonomy_score(grid: np.ndarray, n: int, k: int, player_val: int) -> float:
 
 
 class TaxonomyHeuristic(BaseHeuristic):
+    """Heuristic based on a weighted sum of open and half-open runs, normalised via tanh."""
+
     def evaluate(self, state: State) -> float:
+        """Return a tanh-normalised run-taxonomy score.
+
+        Args:
+            state: Current (non-terminal) game state.
+
+        Returns:
+            Score in [-1.0, 1.0]; positive favours the current player.
+        """
         board = state.board
         n, k = board.n, board.k
         if k < 2:

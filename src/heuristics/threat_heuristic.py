@@ -8,7 +8,18 @@ from src.core.state import State
 
 
 def _count_immediate_threats(grid: np.ndarray, n: int, k: int, player_val: int, opp_val: int) -> int:
-    """Count k-windows with exactly k-1 player pieces and 1 empty cell (one move from win)."""
+    """Count k-windows with exactly k-1 player pieces and 1 empty cell (one move from win).
+
+    Args:
+        grid: Raw board array.
+        n: Board side length.
+        k: Win-condition run length.
+        player_val: Integer value of the player to count threats for.
+        opp_val: Integer value of the opponent (blocks windows).
+
+    Returns:
+        Number of immediate-threat windows.
+    """
     count = 0
     for dr, dc in DIRECTIONS:
         for r in range(n):
@@ -35,7 +46,17 @@ def _count_immediate_threats(grid: np.ndarray, n: int, k: int, player_val: int, 
 
 
 class ThreatHeuristic(BaseHeuristic):
+    """Heuristic counting immediate (one-move-from-win) threats for each player."""
+
     def evaluate(self, state: State) -> float:
+        """Return (threats_me - threats_opp) / total_threats, or 0 if none exist.
+
+        Args:
+            state: Current (non-terminal) game state.
+
+        Returns:
+            Score in [-1.0, 1.0]; positive favours the current player.
+        """
         board = state.board
         n, k = board.n, board.k
         if k < 2:

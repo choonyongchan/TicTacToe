@@ -4,10 +4,20 @@ from src.core.types import NEGATIVE_INFINITY
 
 
 class NegascoutAgent(NegamaxBaseAgent):
+    """Negascout (Principal Variation Search) agent with full-tree search."""
+
     def __init__(self, max_depth: int) -> None:
         super().__init__("NegascoutAgent", max_depth)
 
     def act(self, state: State) -> tuple[int, int]:
+        """Return the best move via Negascout search.
+
+        Args:
+            state: Current game state.
+
+        Returns:
+            (row, col) of the best move.
+        """
         best_score = NEGATIVE_INFINITY
         best_move: tuple[int, int] | None = None
         alpha = NEGATIVE_INFINITY
@@ -32,6 +42,16 @@ class NegascoutAgent(NegamaxBaseAgent):
         return best_move
 
     def _negascout(self, state: State, alpha: float, beta: float) -> float:
+        """Recursive Negascout with null-window re-search on the principal variation.
+
+        Args:
+            state: Current game state.
+            alpha: Lower bound on the value the current player can guarantee.
+            beta: Upper bound imposed by the ancestor node.
+
+        Returns:
+            Score from the current player's perspective.
+        """
         if state.is_terminal():
             return -self._terminal_score(state)
 

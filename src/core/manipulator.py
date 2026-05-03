@@ -8,6 +8,15 @@ from .types import Board2D
 
 
 class Manipulator:
+    """Board symmetry utilities for the dihedral group of a square (8 transforms).
+
+    Attributes:
+        COORD_TRANSFORMS: Tuple of 8 coordinate-mapping functions ordered
+            consistently so that index i always corresponds to the same
+            geometric transform.
+        TRANSFORM_COUNT: Number of symmetry transforms (always 8).
+    """
+
     # 8 coordinate transforms for the dihedral group of a square.
     # Each maps (r, c, n) -> (r', c') where n is board size.
     # ALL methods iterate this tuple so ordering is always consistent.
@@ -25,7 +34,14 @@ class Manipulator:
 
     @staticmethod
     def all_transforms(board: Board2D) -> list[Board2D]:
-        """Return 8 transformed copies of board, ordered by COORD_TRANSFORMS."""
+        """Return 8 transformed copies of board, ordered by COORD_TRANSFORMS.
+
+        Args:
+            board: Square board array to transform.
+
+        Returns:
+            List of 8 transformed board arrays.
+        """
         n = board.shape[0]
         result = []
         for fn in Manipulator.COORD_TRANSFORMS:
@@ -42,7 +58,15 @@ class Manipulator:
     def all_transform_moves(
         move: tuple[int, int] | None, n: int
     ) -> list[tuple[int, int] | None]:
-        """Return 8 transformed coordinates, ordered by COORD_TRANSFORMS."""
+        """Return 8 transformed coordinates, ordered by COORD_TRANSFORMS.
+
+        Args:
+            move: (row, col) to transform, or None for a null move.
+            n: Board side length.
+
+        Returns:
+            List of 8 transformed (row, col) pairs, preserving None entries.
+        """
         if move is None:
             return [None] * Manipulator.TRANSFORM_COUNT
         r, c = move

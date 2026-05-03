@@ -8,6 +8,21 @@ from src.core.state import State
 
 
 def _score_windows(grid: np.ndarray, n: int, k: int, player_val: int, opp_val: int) -> float:
+    """Score all k-windows for player_val using exponential piece weights.
+
+    Near-complete windows (k-1 pieces, 1 empty) receive the highest weight
+    (4^(k-1)); other windows are weighted by open-end count and run length.
+
+    Args:
+        grid: Raw board array.
+        n: Board side length.
+        k: Win-condition run length.
+        player_val: Integer player value to score.
+        opp_val: Integer opponent value (blocked windows are skipped).
+
+    Returns:
+        Raw window score (un-normalised).
+    """
     win_threat = float(4 ** (k - 1))
     total = 0.0
     for dr, dc in DIRECTIONS:
@@ -46,7 +61,17 @@ def _score_windows(grid: np.ndarray, n: int, k: int, player_val: int, opp_val: i
 
 
 class WindowScorerHeuristic(BaseHeuristic):
+    """Heuristic that scores every k-window and normalises via tanh."""
+
     def evaluate(self, state: State) -> float:
+        """Return a tanh-normalised window-score comparison.
+
+        Args:
+            state: Current (non-terminal) game state.
+
+        Returns:
+            Score in [-1.0, 1.0]; positive favours the current player.
+        """
         board = state.board
         n, k = board.n, board.k
         if k < 2:

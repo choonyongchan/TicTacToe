@@ -7,10 +7,20 @@ from src.core.types import NEGATIVE_INFINITY
 
 
 class MTDfAgent(NegamaxBaseAgent):
+    """Single-pass MTD(f) agent: binary-probes a TT-backed negamax at fixed depth."""
+
     def __init__(self, max_depth: int) -> None:
         super().__init__("MTDfAgent", max_depth)
 
     def act(self, state: State) -> tuple[int, int]:
+        """Return the best move found by a single MTD(f) pass.
+
+        Args:
+            state: Current game state.
+
+        Returns:
+            (row, col) of the best move.
+        """
         tt = TranspositionTable()
         self._mtdf(state, 0.0, tt)
         best = tt.best_move(state._hash)
@@ -36,6 +46,17 @@ class MTDfAgent(NegamaxBaseAgent):
         beta: float,
         tt: TranspositionTable,
     ) -> float:
+        """Negamax with alpha-beta and TT lookup/store (no depth limit).
+
+        Args:
+            state: Current game state.
+            alpha: Lower bound on the value the current player can guarantee.
+            beta: Upper bound imposed by the ancestor node.
+            tt: Transposition table.
+
+        Returns:
+            Score from the current player's perspective.
+        """
         h = state._hash
 
         entry = tt.lookup(h)
@@ -91,6 +112,16 @@ class MTDfAgent(NegamaxBaseAgent):
         return g
 
     def _mtdf(self, state: State, f: float, tt: TranspositionTable) -> float:
+        """Run the MTD(f) loop: repeatedly narrow [lower, upper] via null-window probes.
+
+        Args:
+            state: Current game state.
+            f: Initial guess for the game value.
+            tt: Transposition table (shared across probes).
+
+        Returns:
+            Converged game value.
+        """
         lower = NEGATIVE_INFINITY
         upper = -NEGATIVE_INFINITY  # +inf
 

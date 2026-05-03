@@ -7,8 +7,21 @@ from src.core.types import DIRECTIONS
 
 
 class ForcedMove:
+    """Detects forced moves: immediate wins for the current player or blocks for the opponent."""
+
     @staticmethod
     def detect(state: State) -> tuple[int, int] | None:
+        """Return the single forced move for the current position, or None.
+
+        Checks for an immediate win first; if none exists, checks for an
+        opponent threat that must be blocked.
+
+        Args:
+            state: Current game state.
+
+        Returns:
+            (row, col) of the forced cell, or None if no forced move exists.
+        """
         grid = state.board._grid
         n = state.board.n
         k = state.board.k
@@ -24,6 +37,18 @@ class ForcedMove:
     def _find_threat(
         grid: np.ndarray, n: int, k: int, player: int, opponent: int
     ) -> tuple[int, int] | None:
+        """Return the empty cell that completes a k-1 run for player, or None.
+
+        Args:
+            grid: Raw board grid.
+            n: Board side length.
+            k: Win condition run length.
+            player: Integer value of the player to search threats for.
+            opponent: Integer value of the opposing player.
+
+        Returns:
+            (row, col) of the winning/blocking cell, or None.
+        """
         for dr, dc in DIRECTIONS:
             for r in range(n):
                 for c in range(n):

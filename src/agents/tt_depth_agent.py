@@ -9,6 +9,16 @@ from src.heuristics.heuristic import Heuristic
 
 
 class TTDepthAgent(NegamaxBaseAgent):
+    """Base class for agents using depth-limited negamax with a transposition table.
+
+    Provides _negamax_tt for subclasses that implement iterative-deepening or
+    best-node-search strategies.
+
+    Attributes:
+        _max_depth: Maximum search depth.
+        _heuristic: Heuristic called at depth-0 leaf nodes.
+    """
+
     def __init__(self, name: str, max_depth: int) -> None:
         super().__init__(name, max_depth)
         self._max_depth = max_depth
@@ -22,6 +32,21 @@ class TTDepthAgent(NegamaxBaseAgent):
         depth: int,
         tt: TranspositionTable,
     ) -> float:
+        """Depth-limited negamax with alpha-beta pruning and TT lookup/store.
+
+        Uses the heuristic at depth 0 and stores bounds under all 8
+        symmetry-equivalent Zobrist hashes.
+
+        Args:
+            state: Current game state.
+            alpha: Lower bound on the value the current player can guarantee.
+            beta: Upper bound imposed by the ancestor node.
+            depth: Remaining plies to search.
+            tt: Transposition table shared across calls.
+
+        Returns:
+            Score from the current player's perspective.
+        """
         h = state._hash
 
         entry = tt.lookup_at_depth(h, depth)

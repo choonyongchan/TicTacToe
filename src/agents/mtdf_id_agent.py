@@ -8,10 +8,22 @@ from src.core.types import NEGATIVE_INFINITY
 
 
 class MTDfIDAgent(TTDepthAgent):
+    """Iterative-deepening MTD(f) agent with forced-move detection and TT reuse."""
+
     def __init__(self, max_depth: int) -> None:
         super().__init__("MTDfIDAgent", max_depth)
 
     def act(self, state: State) -> tuple[int, int]:
+        """Return the best move via iterative-deepening MTD(f).
+
+        Short-circuits with a forced move when one exists.
+
+        Args:
+            state: Current game state.
+
+        Returns:
+            (row, col) of the best move.
+        """
         forced = ForcedMove.detect(state)
         if forced is not None:
             return forced
@@ -26,6 +38,17 @@ class MTDfIDAgent(TTDepthAgent):
     def _mtdf(
         self, state: State, f: float, depth: int, tt: TranspositionTable
     ) -> float:
+        """Run the MTD(f) loop at a fixed depth.
+
+        Args:
+            state: Current game state.
+            f: Initial game-value guess.
+            depth: Search depth for this pass.
+            tt: Transposition table shared across iterative-deepening passes.
+
+        Returns:
+            Converged game value at the given depth.
+        """
         lower = NEGATIVE_INFINITY
         upper = -NEGATIVE_INFINITY
 
