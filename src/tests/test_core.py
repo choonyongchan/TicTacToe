@@ -574,3 +574,27 @@ class TestGetCandidateCells:
         history = [(0, 0)]
         candidates = set(b.get_candidate_cells(history, d=2))
         assert candidates == set(b.get_empty_cells())
+
+
+# ---------------------------------------------------------------------------
+# tt_state.py
+# ---------------------------------------------------------------------------
+
+from src.core.tt_state import TTState
+from src.core.manipulator import Manipulator
+
+
+class TestTTStateInit:
+    def test_hashes_length(self):
+        s = TTState(3, 3)
+        assert len(s._hashes) == Manipulator.TRANSFORM_COUNT
+
+    def test_hashes_all_zero(self):
+        s = TTState(3, 3)
+        assert s._hashes == [0] * Manipulator.TRANSFORM_COUNT
+
+    def test_inherits_state_behaviour(self):
+        s = TTState(3, 3)
+        assert s.current_player is Player.X
+        assert s.history == []
+        assert s._hash == 0
