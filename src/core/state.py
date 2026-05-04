@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from .board import Board
-from .manipulator import Manipulator
 from .types import Player
 from .zobrist import ZobristTable
 
@@ -24,13 +23,10 @@ class State:
         self._state_count: int = 0
         self._visited: set[int] = set()
         self._hash: int = 0
-        self._hashes: list[int] = [0] * Manipulator.TRANSFORM_COUNT
         self.candidate_d: int = max(1, self.board.k - 2)
 
     def apply(self, row: int, col: int) -> None:
         """Place the current player's piece and advance the turn.
-
-        Also updates the Zobrist hash and all symmetry-equivalent hashes.
 
         Args:
             row: Row of the cell to play.
@@ -87,4 +83,3 @@ class State:
         self._state_count = 0
         self._visited = set()
         self._hash = 0
-        self._hashes = [0] * Manipulator.TRANSFORM_COUNT
