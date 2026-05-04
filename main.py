@@ -34,6 +34,8 @@ AGENTS: dict[str, AgentFactory] = {
     "bns_id": lambda p, d: BNSIDAgent(d),
 }
 
+assert _TT_AGENTS <= AGENTS.keys(), f"_TT_AGENTS contains unknown keys: {_TT_AGENTS - AGENTS.keys()}"
+
 
 class Main:
     def __init__(self, n: int, k: int, agent: str, verbose: bool) -> None:
