@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import pytest
 
+from src.agents.mtdf_id_agent import MTDfIDAgent
+from src.core.transposition_table import TranspositionTable
+from src.core.types import NEGATIVE_INFINITY
 from src.heuristics.distance_heuristic import DistanceHeuristic
+from src.heuristics.fork_heuristic import ForkHeuristic
+from src.heuristics.heuristic import Heuristic
+from src.heuristics.taxonomy_heuristic import TaxonomyHeuristic
+from src.heuristics.threat_heuristic import ThreatHeuristic
+from src.heuristics.window_scorer_heuristic import WindowScorerHeuristic
 from src.tests.test_helper import fresh_state, state_with_moves
 
 
@@ -40,10 +48,6 @@ class TestDistanceHeuristic:
         assert -1.0 <= score <= 1.0
 
 
-import math
-from src.heuristics.taxonomy_heuristic import TaxonomyHeuristic
-
-
 class TestTaxonomyHeuristic:
     def test_empty_board_returns_zero(self):
         h = TaxonomyHeuristic()
@@ -77,9 +81,6 @@ class TestTaxonomyHeuristic:
         state = state_with_moves([(0, 3), (1, 0), (3, 0), (1, 1)], n=4, k=3)
         h = TaxonomyHeuristic()
         assert h.evaluate(state) < 0.0
-
-
-from src.heuristics.fork_heuristic import ForkHeuristic
 
 
 class TestForkHeuristic:
@@ -120,9 +121,6 @@ class TestForkHeuristic:
         assert -1.0 <= score <= 1.0
 
 
-from src.heuristics.heuristic import Heuristic
-
-
 class TestHeuristic:
     def test_empty_board_returns_zero(self):
         # All three layers return 0.0 on empty board → ensemble = 0.0.
@@ -144,9 +142,6 @@ class TestHeuristic:
     def test_implements_base_heuristic(self):
         from src.heuristics.base_heuristic import BaseHeuristic
         assert isinstance(Heuristic(), BaseHeuristic)
-
-
-from src.heuristics.threat_heuristic import ThreatHeuristic
 
 
 class TestThreatHeuristic:
@@ -184,11 +179,6 @@ class TestThreatHeuristic:
         assert -1.0 <= h.evaluate(state) <= 1.0
 
 
-from src.agents.mtdf_id_agent import MTDfIDAgent
-from src.core.transposition_table import TranspositionTable
-from src.core.types import NEGATIVE_INFINITY
-
-
 class TestMTDfIDAgentHeuristicIntegration:
     def test_depth_zero_nonterminal_returns_heuristic_not_zero(self):
         # 5x5, k=3. X=(0,0),(0,1) open run; O scattered. After 4 moves, current=X=player1.
@@ -210,9 +200,6 @@ class TestMTDfIDAgentHeuristicIntegration:
         move = agent.act(state)
         # (0,2) completes the row to length 3 = win for k=3. Agent must take it.
         assert move == (0, 2)
-
-
-from src.heuristics.window_scorer_heuristic import WindowScorerHeuristic
 
 
 class TestWindowScorerHeuristic:

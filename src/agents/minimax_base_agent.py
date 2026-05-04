@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from src.agents.base_agent import BaseAgent
-from src.core.state import State
 from src.core.types import Player
 
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from src.core.manipulator import Manipulator
 from src.core.state import State

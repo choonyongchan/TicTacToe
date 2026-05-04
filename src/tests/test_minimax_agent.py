@@ -9,7 +9,6 @@ from src.tests.test_helper import (
     state_with_moves,
     PUZZLE_3X3,
     PUZZLE_4X4,
-    PUZZLE_4X4_BLOCK,
     PUZZLE_5X5,
 )
 
