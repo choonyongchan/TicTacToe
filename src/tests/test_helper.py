@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from collections.abc import Sequence
 
-from src.core.state import State
 from src.core.tt_state import TTState
 
 

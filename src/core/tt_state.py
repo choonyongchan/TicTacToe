@@ -43,3 +43,8 @@ class TTState(State):
             Manipulator.all_transform_moves((row, col), self.board.n)
         ):
             self._hashes[i] ^= int(self._zobrist._table[tr, tc, player_val])
+
+    def reset(self) -> None:
+        """Reset all state and re-zero all symmetry-equivalent Zobrist hashes."""
+        super().reset()
+        self._hashes = [0] * Manipulator.TRANSFORM_COUNT

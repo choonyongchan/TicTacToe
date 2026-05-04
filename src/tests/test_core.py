@@ -624,3 +624,43 @@ class TestTTStateApply:
         s2 = TTState(3, 3)
         s2.apply(0, 0)
         assert s1._hashes == s2._hashes
+
+
+class TestTTStateUndo:
+    def test_undo_restores_hashes_to_zero(self):
+        s = TTState(3, 3)
+        s.apply(0, 0)
+        s.undo()
+        assert s._hashes == [0] * Manipulator.TRANSFORM_COUNT
+
+    def test_undo_two_moves(self):
+        s = TTState(3, 3)
+        s.apply(0, 0)
+        s.apply(1, 1)
+        s.undo()
+        s.undo()
+        assert s._hashes == [0] * Manipulator.TRANSFORM_COUNT
+
+    def test_undo_restores_identity_hash(self):
+        s = TTState(3, 3)
+        s.apply(1, 1)
+        s.undo()
+        assert s._hashes[0] == 0
+
+
+class TestTTStateReset:
+    def test_reset_zeros_hashes(self):
+        s = TTState(3, 3)
+        s.apply(0, 0)
+        s.reset()
+        assert s._hashes == [0] * Manipulator.TRANSFORM_COUNT
+
+    def test_reset_preserves_hashes_attribute(self):
+        s = TTState(3, 3)
+        s.reset()
+        assert hasattr(s, "_hashes")
+
+
+class TestStateNoHashesAttribute:
+    def test_plain_state_has_no_hashes(self):
+        assert not hasattr(State(3, 3), "_hashes")
