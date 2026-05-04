@@ -4,6 +4,7 @@ import numpy as np
 
 from src.core.manipulator import Manipulator
 from src.core.state import State
+from src.core.tt_state import TTState
 from src.core.transposition_table import TranspositionTable
 
 
@@ -131,7 +132,7 @@ def _compute_hash_from_board(zobrist, board: np.ndarray) -> int:
 
 def test_symmetry_hashes_full_end_to_end():
     """3×3 board, 2 moves: verify all 8 incremental hashes, TT storage, and move transforms."""
-    state = State(n=3, k=3)
+    state = TTState(n=3, k=3)
     state.apply(0, 0)  # X at top-left
     state.apply(0, 1)  # O at top-middle (asymmetric — all 8 transforms are distinct)
     best_move = (0, 0)

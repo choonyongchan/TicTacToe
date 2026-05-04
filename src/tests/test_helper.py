@@ -6,14 +6,15 @@ from dataclasses import dataclass
 from collections.abc import Sequence
 
 from src.core.state import State
+from src.core.tt_state import TTState
 
 
-def fresh_state(n: int = 3, k: int = 3) -> State:
-    return State(n, k)
+def fresh_state(n: int = 3, k: int = 3) -> TTState:
+    return TTState(n, k)
 
 
-def state_with_moves(moves: Sequence[tuple[int, int]], n: int = 3, k: int = 3) -> State:
-    s = State(n, k)
+def state_with_moves(moves: Sequence[tuple[int, int]], n: int = 3, k: int = 3) -> TTState:
+    s = TTState(n, k)
     for row, col in moves:
         s.apply(row, col)
     return s

@@ -40,10 +40,6 @@ class State:
         self.history.append((row, col))
         player_val = int(self.current_player)
         self._hash = self._zobrist.hash_move(self._hash, row, col, player_val)
-        for i, (tr, tc) in enumerate(
-            Manipulator.all_transform_moves((row, col), self.board.n)
-        ):
-            self._hashes[i] ^= int(self._zobrist._table[tr, tc, player_val])
         if self._hash not in self._visited:
             self._visited.add(self._hash)
             self._state_count += 1
@@ -55,10 +51,6 @@ class State:
         prev_player = self.current_player.opponent()
         prev_val = int(prev_player)
         self._hash = self._zobrist.hash_move(self._hash, row, col, prev_val)
-        for i, (tr, tc) in enumerate(
-            Manipulator.all_transform_moves((row, col), self.board.n)
-        ):
-            self._hashes[i] ^= int(self._zobrist._table[tr, tc, prev_val])
         self.board.set(row, col, Player._)
         self.current_player = prev_player
 

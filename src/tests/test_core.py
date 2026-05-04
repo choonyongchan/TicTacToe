@@ -598,3 +598,29 @@ class TestTTStateInit:
         assert s.current_player is Player.X
         assert s.history == []
         assert s._hash == 0
+
+
+class TestTTStateApply:
+    def test_apply_changes_hashes(self):
+        s = TTState(3, 3)
+        s.apply(0, 0)
+        assert s._hashes != [0] * Manipulator.TRANSFORM_COUNT
+
+    def test_identity_hash_matches_main_hash(self):
+        # Transform index 0 is the identity; its hash must equal _hash
+        s = TTState(3, 3)
+        s.apply(1, 1)
+        assert s._hashes[0] == s._hash
+
+    def test_apply_two_moves_hashes_nonzero(self):
+        s = TTState(3, 3)
+        s.apply(0, 0)
+        s.apply(1, 1)
+        assert any(h != 0 for h in s._hashes)
+
+    def test_apply_same_position_same_hashes(self):
+        s1 = TTState(3, 3)
+        s1.apply(0, 0)
+        s2 = TTState(3, 3)
+        s2.apply(0, 0)
+        assert s1._hashes == s2._hashes
