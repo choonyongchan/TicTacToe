@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from src.core.state import State
 from src.heuristics.base_heuristic import BaseHeuristic
-from src.heuristics.distance_heuristic import DistanceHeuristic
+from src.heuristics.window_scorer_heuristic import WindowScorerHeuristic
 
 
 class Heuristic(BaseHeuristic):
@@ -13,7 +13,7 @@ class Heuristic(BaseHeuristic):
     """
 
     def __init__(self) -> None:
-        self._scorer = DistanceHeuristic()
+        self._scorer = WindowScorerHeuristic()
 
     def evaluate(self, state: State) -> float:
         """Return the heuristic score for the current player.
