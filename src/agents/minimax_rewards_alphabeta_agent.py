@@ -83,6 +83,9 @@ class MinimaxRewardsAlphaBetaAgent(MinimaxAlphaBetaAgent):
             state: Current game state (maximizer's turn).
             alpha: Current lower bound.
             beta: Current upper bound.
+
+        Returns:
+            The maximum reachable score for the maximizing player.
         """
         best = NEGATIVE_INFINITY
         for row, col in state.board.get_empty_cells():
@@ -104,6 +107,9 @@ class MinimaxRewardsAlphaBetaAgent(MinimaxAlphaBetaAgent):
             state: Current game state (minimizer's turn).
             alpha: Current lower bound.
             beta: Current upper bound.
+
+        Returns:
+            The minimum reachable score (best for the opponent).
         """
         best = INFINITY
         for row, col in state.board.get_empty_cells():

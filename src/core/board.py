@@ -50,6 +50,9 @@ class Board:
         Args:
             row: Row index.
             col: Column index.
+
+        Returns:
+            True if the cell is unoccupied.
         """
         return int(self._grid[row, col]) == Player._
 
@@ -96,6 +99,9 @@ class Board:
         Args:
             row: Row index.
             col: Column index.
+
+        Returns:
+            True if (row, col) is within the n×n grid.
         """
         return 0 <= row < self.n and 0 <= col < self.n
 

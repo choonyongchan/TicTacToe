@@ -73,6 +73,9 @@ class TranspositionTable:
 
         Args:
             key: Zobrist hash of the position.
+
+        Returns:
+            The best move stored, or None if not found.
         """
         entry = self._table.get(key)
         return entry[2] if entry is not None else None
@@ -82,6 +85,9 @@ class TranspositionTable:
 
         Args:
             key: Zobrist hash of the position.
+
+        Returns:
+            Depth of the stored entry, or -1 if not present.
         """
         return self._depths.get(key, -1)
 

@@ -56,6 +56,9 @@ def _is_fork(grid: np.ndarray, n: int, k: int, row: int, col: int, player_val: i
         row: Candidate row.
         col: Candidate column.
         player_val: Integer player value to test.
+
+    Returns:
+        True if placing player_val at (row, col) creates 2+ simultaneous threats.
     """
     grid[row, col] = player_val
     threats = _count_threats_at(grid, n, k, row, col, player_val)
