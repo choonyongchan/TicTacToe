@@ -82,6 +82,11 @@ class State:
             return self.current_player.opponent()
         return None
 
+    @property
+    def state_count(self) -> int:
+        """Total distinct board positions visited across the game."""
+        return self._state_count
+
     def reset(self) -> None:
         """Reset all state to the beginning of a new game."""
         self.board.reset()
