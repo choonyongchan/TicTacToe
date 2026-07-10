@@ -23,6 +23,6 @@ Thumbs.db
 .idea/
 .vscode/
 
-back/
+.back/
 todo.md
 .worktrees/

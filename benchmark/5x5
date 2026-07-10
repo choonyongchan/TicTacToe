@@ -1,0 +1,12 @@
+=== random ===
+Winner: Draw | n=5 k=5 | Algorithm: RandomAgent | States visited: 25 | Time: 0.00s
+
+=== mtdf ===
+Winner: Timeout | n=5 k=5 | Algorithm: MTDfAgent | States visited: 9699395 | Time: 3635.34s
+
+=== mtdf_id ===
+Winner: Timeout | n=5 k=5 | Algorithm: MTDfIDAgent | States visited: 13711474 | Time: 3606.74s
+
+=== bns_id ===
+Winner: Timeout | n=5 k=5 | Algorithm: BNSIDAgent | States visited: 11441729 | Time: 3606.81s
+

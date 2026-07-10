@@ -1,0 +1,30 @@
+=== random ===
+Winner: Draw | n=3 k=3 | Algorithm: RandomAgent | States visited: 9 | Time: 0.00s
+
+=== minimax ===
+Winner: Draw | n=3 k=3 | Algorithm: MinimaxAgent | States visited: 618184 | Time: 8.57s
+
+=== minimax_ab ===
+Winner: Draw | n=3 k=3 | Algorithm: MinimaxAlphaBetaAgent | States visited: 21652 | Time: 0.30s
+
+=== minimax_rewards_ab ===
+Winner: Draw | n=3 k=3 | Algorithm: MinimaxRewardsAlphaBetaAgent | States visited: 24698 | Time: 0.35s
+
+=== negamax ===
+Winner: Draw | n=3 k=3 | Algorithm: NegamaxAgent | States visited: 24698 | Time: 0.34s
+
+=== mtdf ===
+Winner: Draw | n=3 k=3 | Algorithm: MTDfAgent | States visited: 1817 | Time: 0.04s
+
+=== mtdf_id ===
+Winner: Draw | n=3 k=3 | Algorithm: MTDfIDAgent | States visited: 5297 | Time: 0.15s
+
+=== negascout ===
+Winner: Draw | n=3 k=3 | Algorithm: NegascoutAgent | States visited: 45801 | Time: 0.68s
+
+=== bns ===
+Winner: Draw | n=3 k=3 | Algorithm: BNSAgent | States visited: 58226 | Time: 0.81s
+
+=== bns_id ===
+Winner: Draw | n=3 k=3 | Algorithm: BNSIDAgent | States visited: 7171 | Time: 0.17s
+
