@@ -1,0 +1,76 @@
+from tictactoe.agents.negamax_base_agent import NegamaxBaseAgent
+from tictactoe.core.state import State
+from tictactoe.core.types import NEGATIVE_INFINITY
+
+
+class NegascoutAgent(NegamaxBaseAgent):
+    """Negascout (Principal Variation Search) agent with full-tree search."""
+
+    def __init__(self, max_depth: int) -> None:
+        super().__init__("NegascoutAgent", max_depth)
+
+    def act(self, state: State) -> tuple[int, int]:
+        """Return the best move via Negascout search.
+
+        Args:
+            state: Current game state.
+
+        Returns:
+            (row, col) of the best move.
+        """
+        best_score = NEGATIVE_INFINITY
+        best_move: tuple[int, int] | None = None
+        alpha = NEGATIVE_INFINITY
+
+        for i, (row, col) in enumerate(state.board.get_empty_cells()):
+            state.apply(row, col)
+            if i == 0:
+                score = -self._negascout(state, NEGATIVE_INFINITY, -alpha)
+            else:
+                score = -self._negascout(state, -alpha - 1, -alpha)
+                if score > alpha:
+                    score = -self._negascout(state, NEGATIVE_INFINITY, -score)
+            state.undo()
+
+            if score > best_score:
+                best_score = score
+                best_move = (row, col)
+            if best_score > alpha:
+                alpha = best_score
+
+        assert best_move is not None
+        return best_move
+
+    def _negascout(self, state: State, alpha: float, beta: float) -> float:
+        """Recursive Negascout with null-window re-search on the principal variation.
+
+        Args:
+            state: Current game state.
+            alpha: Lower bound on the value the current player can guarantee.
+            beta: Upper bound imposed by the ancestor node.
+
+        Returns:
+            Score from the current player's perspective.
+        """
+        if state.is_terminal():
+            return -self._terminal_score(state)
+
+        best = NEGATIVE_INFINITY
+        for i, (row, col) in enumerate(state.board.get_empty_cells()):
+            state.apply(row, col)
+            if i == 0:
+                score = -self._negascout(state, -beta, -alpha)
+            else:
+                score = -self._negascout(state, -alpha - 1, -alpha)
+                if alpha < score < beta:
+                    score = -self._negascout(state, -beta, -score)
+            state.undo()
+
+            if score > best:
+                best = score
+            if best >= beta:
+                break
+            if best > alpha:
+                alpha = best
+
+        return best

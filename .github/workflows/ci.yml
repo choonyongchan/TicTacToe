@@ -12,7 +12,7 @@ jobs:
           python-version: "3.14"
       - uses: astral-sh/setup-uv@v5
       - run: uv pip install --system ruff
-      - run: ruff check src/
+      - run: ruff check tictactoe/ tests/
 
   test:
     runs-on: ubuntu-latest
@@ -23,4 +23,4 @@ jobs:
           python-version: "3.14"
       - uses: astral-sh/setup-uv@v5
       - run: uv pip install --system pytest numpy
-      - run: pytest src/tests/
+      - run: pytest tests/

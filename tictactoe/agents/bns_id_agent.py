@@ -1,0 +1,75 @@
+from __future__ import annotations
+
+from tictactoe.agents.tt_depth_agent import TTDepthAgent
+from tictactoe.core.forced_move import ForcedMove
+from tictactoe.core.state import State
+from tictactoe.core.transposition_table import TranspositionTable
+
+
+class BNSIDAgent(TTDepthAgent):
+    """Iterative-deepening Best Node Search with a transposition table and forced-move detection."""
+
+    def __init__(self, max_depth: int) -> None:
+        super().__init__("BNSIDAgent", max_depth)
+
+    def act(self, state: State) -> tuple[int, int]:
+        """Return the best move via iterative-deepening BNS.
+
+        Short-circuits with a forced move when one exists.
+
+        Args:
+            state: Current game state.
+
+        Returns:
+            (row, col) of the best move.
+        """
+        forced = ForcedMove.detect(state)
+        if forced is not None:
+            return forced
+        tt = TranspositionTable()
+        best_node: tuple[int, int] | None = None
+        for depth in range(1, self._max_depth + 1):
+            result = self._bns_tt(state, -1.0, 1.0, depth, tt)
+            if result is not None:
+                best_node = result
+        assert best_node is not None
+        return best_node
+
+    def _bns_tt(
+        self,
+        state: State,
+        alpha: float,
+        beta: float,
+        depth: int,
+        tt: TranspositionTable,
+    ) -> tuple[int, int] | None:
+        """Run BNS at a fixed depth using TT-backed negamax for child evaluations.
+
+        Args:
+            state: Current game state.
+            alpha: Initial lower bound.
+            beta: Initial upper bound.
+            depth: Search depth for child evaluations.
+            tt: Transposition table shared across iterative-deepening passes.
+
+        Returns:
+            (row, col) of the best move found, or None if no candidates exist.
+        """
+        best_node: tuple[int, int] | None = None
+        while True:
+            test = (alpha + beta) / 2
+            better_count = 0
+            for row, col in state.board.get_candidate_cells(state.history, state.candidate_d):
+                state.apply(row, col)
+                val = -self._negamax_tt(state, -test, -(test - self._epsilon), depth - 1, tt)
+                state.undo()
+                if val >= test:
+                    better_count += 1
+                    best_node = (row, col)
+            if better_count > 0:
+                alpha = test
+            else:
+                beta = test
+            if beta - alpha < 2 * self._epsilon or better_count == 1:
+                break
+        return best_node

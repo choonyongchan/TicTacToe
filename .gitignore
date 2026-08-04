@@ -1,7 +1,6 @@
 # Claude Code files
 .claude/
 CLAUDE.md
-README.md
 
 # Virtual environment
 .venv/
@@ -24,5 +23,4 @@ Thumbs.db
 .vscode/
 
 .back/
-todo.md
 .worktrees/
